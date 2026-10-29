@@ -689,6 +689,9 @@ const GEO = {
   disc:new THREE.CylinderGeometry(0.34, 0.34, 0.07, 28), wheel:new THREE.CylinderGeometry(0.36, 0.36, 0.26, 18), cone:new THREE.ConeGeometry(0.22, 0.72, 18),
   beam:new THREE.ConeGeometry(1.7, 6.2, 22, 1, true), post:new THREE.CylinderGeometry(0.05, 0.05, 1, 8)
 };
+// CylinderGeometry maps cap UVs a quarter turn off. Pickups stand the disc up (rotation.x = PI/2), so remap both caps to keep icons upright from either side.
+{ const pos = GEO.disc.attributes.position, nrm = GEO.disc.attributes.normal, uv = GEO.disc.attributes.uv;
+  for (let i = 0; i < uv.count; i++){ const s = nrm.getY(i); if (Math.abs(s) > 0.99) uv.setXY(i, 0.5 + s * pos.getX(i) / 0.68, 0.5 - pos.getZ(i) / 0.68); } }
 function addMesh(parent, geo, material, x, y, z, sx, sy, sz){
   const m = new THREE.Mesh(geo, material); m.position.set(x || 0, y || 0, z || 0);
   if (sx != null) m.scale.set(sx, sy, sz);
