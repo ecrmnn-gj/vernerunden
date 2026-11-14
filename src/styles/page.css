@@ -1,0 +1,25 @@
+/* Below the stage: hint row, buttons, leaderboard and controls panels. */
+.hintrow{ display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:8px 16px; margin-top:10px; }
+.hint{ margin:0; color:var(--muted); font-size:13px; }
+.btns{ display:flex; flex-wrap:wrap; gap:8px; }
+.ghost{ font:500 13px/1 "Barlow",sans-serif; color:var(--ink); background:var(--surface); border:1px solid var(--line); border-radius:6px; padding:7px 10.5px; cursor:pointer; }
+.ghost:focus-visible, .btn:focus-visible, .fsexit:focus-visible{ outline:3px solid var(--yellow); outline-offset:3px; }
+
+.below{ display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:22px; }
+@media (max-width:720px){ .below{ grid-template-columns:1fr; } }
+.panel{ background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:16px 18px 18px; }
+.panel h2{ font:italic 800 22px/1.1 "Barlow Condensed","Arial Narrow",sans-serif; margin:0 0 12px; }
+.board{ list-style:none; margin:0; padding:0; }
+.board li{ display:grid; grid-template-columns:21px 1fr auto; align-items:center; gap:9px; padding:7px 0; border-top:1px solid var(--line); }
+.board li:first-child{ border-top:0; }
+.board .rank{ font:italic 800 16px/1 "Barlow Condensed",sans-serif; color:var(--muted); font-variant-numeric:tabular-nums; }
+.board .name{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.board li.me .name{ font-weight:600; }
+.board .val{ font:italic 700 16.5px/1 "Barlow Condensed",sans-serif; font-variant-numeric:tabular-nums; }
+.note{ margin:10px 0 0; color:var(--muted); font-size:13px; }
+.keys{ list-style:none; margin:0; padding:0; display:grid; grid-template-columns:max-content 1fr; gap:10px 14px; }
+/* the key column takes the width of the widest row, so "↑ W Mellomrom" stays on one line */
+.keys li{ grid-column:1 / -1; display:grid; grid-template-columns:subgrid; align-items:center; }
+.keys kbd:last-child{ margin-right:0; }
+.keys kbd{ display:inline-block; min-width:26.5px; text-align:center; font:600 12px/1 "Barlow",sans-serif; padding:5.5px 6px; margin-right:3.5px; border:1px solid var(--line); border-bottom-width:3px; border-radius:6px; background:var(--bg); color:var(--ink); }
+.keys span{ color:var(--muted); font-size:13px; }

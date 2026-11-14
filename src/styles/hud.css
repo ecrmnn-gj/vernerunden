@@ -1,0 +1,21 @@
+/* In-stage HUD: open-avvik slots, gear chips and the distance counter. */
+.hud3d{ top:12px; left:14px; right:14px; display:flex; justify-content:space-between; align-items:flex-start; gap:10.5px; }
+.hlab{ display:block; font:italic 800 clamp(12px, 2.02cqw, 16.5px)/1 "Barlow Condensed","Arial Narrow",sans-serif; color:var(--halo); letter-spacing:.01em;
+  text-shadow:-2px -2px 0 var(--outline), 2px -2px 0 var(--outline), -2px 2px 0 var(--outline), 2px 2px 0 var(--outline), 2px 3px 0 var(--outline); margin-bottom:6px; }
+.hud3d .slots{ display:flex; gap:clamp(4.5px, 0.88cqw, 8px); height:auto; }
+.hud3d .slots i{ position:relative; width:clamp(21px, 3.52cqw, 37px); height:clamp(19.5px, 3.17cqw, 33.5px); border:3px solid var(--halo); border-radius:5px; background:rgba(0,0,0,.28); box-shadow:0 0 0 2px var(--outline), 3px 4px 0 var(--outline); transform:skewX(-8deg); }
+.hud3d .slots i.on{ background:var(--red); }
+.hud3d .slots i.on::after{ content:"!"; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font:italic 900 clamp(13px, 2.29cqw, 23px)/1 "Barlow Condensed",sans-serif; color:var(--halo); }
+.hud3d .chips{ margin-top:8px; }
+.hud3d .chip{ background:rgba(0,0,0,.35); border-color:rgba(255,255,255,.25); color:var(--halo); }
+.hud3d .chip.on{ background:var(--green); border-color:var(--green); color:var(--green-ink); }
+.hud-right{ text-align:right; }
+#hudMeters{ display:block; font:italic 900 clamp(30px, 6.6cqw, 68.5px)/.9 "Barlow Condensed","Arial Narrow",sans-serif; color:var(--halo); font-variant-numeric:tabular-nums; white-space:nowrap;
+  text-shadow:-3px -3px 0 var(--outline), 3px -3px 0 var(--outline), -3px 3px 0 var(--outline), 3px 3px 0 var(--outline), 2px 5px 0 var(--outline), 3px 7px 0 var(--outline), 4px 9px 0 var(--outline); }
+.caption{ max-width:min(520px, 46%); }
+.superbar{ top:calc(14px + 4.2em); }
+.warn{ top:clamp(96px, 20cqh, 150px); }
+@container (max-width: 640px){
+  .caption{ top:clamp(96px, 22cqh, 130px); max-width:92%; }
+  .superbar{ top:clamp(140px, 32cqh, 180px); }
+}

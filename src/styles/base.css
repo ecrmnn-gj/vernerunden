@@ -1,0 +1,58 @@
+/* Design tokens (light and dark), page layout and the header sign. */
+:root{
+  --bg:#ECEAE6; --surface:#FFFFFF; --ink:#16130F; --muted:#5E5850; --line:#D3CEC6;
+  --hud-bg:#15120F; --hud-ink:#FFFFFF; --hud-muted:#A79F95; --hud-line:#3A332C;
+  --sky1:#3F86C8; --sky2:#9DC0DA; --fog:#AFC6D4; --sun:#FFFBEA; --sun-light:#FFF3E0; --sun-i:0.8;
+  --hemi-sky:#D8EAFF; --hemi-ground:#8C8172; --hemi-i:0.55; --star:rgba(255,255,255,0);
+  --ground:#A0988D; --ground2:#847B70; --frame:#A8A39C; --far:#AFC0CB; --sil:#4A535C; --lamp:#E4E1D8; --beam-a:0;
+  --outline:#16130F; --halo:#FFF6E0; --steel:#C9CFD3; --wood:#C99A5B; --puff:#E8DDCB;
+  --paper:#FFFFFF; --green:#00874A; --green-ink:#FFFFFF; --green-dark:#00602F; --yellow:#F5B800; --orange:#F07A12; --red:#E0301E;
+  --blue:#1E6FD0; --gold:#E7B023; --npc:#8C9AA2; --suit:#232A33; --dust:#857762;
+  --sign-ink:#16130F; --scrim:rgba(21,18,15,.55);
+  --letter-bg:#FFFFFF; --letter-ink:#16130F; --letter-muted:#5E5850;
+  color-scheme:light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top, 0px);
+  padding-bottom:env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0C0D10; --surface:#17191E; --ink:#ECEDEF; --muted:#9EA3AB; --line:#2A2E35;
+    --hud-bg:#060709; --hud-ink:#FFFFFF; --hud-muted:#9EA3AB; --hud-line:#262A31;
+    --sky1:#3F86C8; --sky2:#9DC0DA; --fog:#AFC6D4; --sun:#FFFBEA; --sun-light:#FFF3E0; --sun-i:0.8;
+    --hemi-sky:#D8EAFF; --hemi-ground:#8C8172; --hemi-i:0.55; --star:rgba(255,255,255,0);
+    --ground:#A0988D; --ground2:#847B70; --frame:#A8A39C; --far:#AFC0CB; --sil:#4A535C; --lamp:#E4E1D8; --beam-a:0;
+    --outline:#0C0B09; --halo:#FFF6E0; --steel:#AEB6BB; --wood:#B88A52; --puff:#D9D2C6;
+    --paper:#F1F2F3; --green:#16A562; --green-ink:#FFFFFF; --green-dark:#0D7744; --yellow:#F7C21F; --orange:#F5862A; --red:#F0442F;
+    --blue:#3C86E0; --gold:#EBB62E; --npc:#8E9BA3; --suit:#2B3240; --dust:#857762;
+    --sign-ink:#16130F; --scrim:rgba(0,0,0,.65);
+    --letter-bg:#ECEDEA; --letter-ink:#16130F; --letter-muted:#55524C;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0C0D10; --surface:#17191E; --ink:#ECEDEF; --muted:#9EA3AB; --line:#2A2E35;
+  --hud-bg:#060709; --hud-ink:#FFFFFF; --hud-muted:#9EA3AB; --hud-line:#262A31;
+  --sky1:#3F86C8; --sky2:#9DC0DA; --fog:#AFC6D4; --sun:#FFFBEA; --sun-light:#FFF3E0; --sun-i:0.8;
+  --hemi-sky:#D8EAFF; --hemi-ground:#8C8172; --hemi-i:0.55; --star:rgba(255,255,255,0);
+  --ground:#A0988D; --ground2:#847B70; --frame:#A8A39C; --far:#AFC0CB; --sil:#4A535C; --lamp:#E4E1D8; --beam-a:0;
+  --outline:#0C0B09; --halo:#FFF6E0; --steel:#AEB6BB; --wood:#B88A52; --puff:#D9D2C6;
+  --paper:#F1F2F3; --green:#16A562; --green-ink:#FFFFFF; --green-dark:#0D7744; --yellow:#F7C21F; --orange:#F5862A; --red:#F0442F;
+  --blue:#3C86E0; --gold:#EBB62E; --npc:#8E9BA3; --suit:#2B3240; --dust:#857762;
+  --sign-ink:#16130F; --scrim:rgba(0,0,0,.65);
+  --letter-bg:#ECEDEA; --letter-ink:#16130F; --letter-muted:#55524C;
+  color-scheme:dark;
+}
+html{ scroll-padding-top:env(safe-area-inset-top, 0px); background:var(--bg); }
+*,*::before,*::after{ box-sizing:inherit; }
+body{ margin:0; background:var(--bg); color:var(--ink); font-family:"Barlow","Helvetica Neue",Arial,sans-serif; font-size:15px; line-height:1.45; -webkit-text-size-adjust:100%; }
+body.fs-on{ overflow:hidden; }
+.wrap{ max-width:1080px; margin:0 auto; padding:20px 16px 40px; }
+.hazard{ background:repeating-linear-gradient(-45deg, var(--yellow) 0 12px, var(--hud-bg) 12px 24px); }
+
+.top{ display:flex; flex-wrap:wrap; align-items:center; gap:12px 22px; margin-bottom:18px; }
+.sign{ display:inline-flex; align-items:stretch; border-radius:4px; overflow:hidden; }
+.sign .hazard{ width:22px; flex:none; }
+.sign h1{ margin:0; background:var(--yellow); color:var(--sign-ink); padding:6px 20px 8px 16px; font:italic 900 clamp(30px,6vw,53px)/1 "Barlow Condensed","Arial Narrow",sans-serif; letter-spacing:-.01em; }
+.sign h1 span{ display:inline-block; margin-left:.2em; padding:0 .18em; background:var(--sign-ink); color:var(--yellow); transform:skewX(-8deg); }
+.lede{ margin:0; color:var(--muted); max-width:42ch; }
