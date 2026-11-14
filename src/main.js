@@ -2048,7 +2048,6 @@ function render(time, dt){
   camLook.set(g.x * 0.75, lookY, -12);
   if (cb > 0.0005) camLook.lerp(_v3.set(0, portrait ? 1.2 : 1.27, 0), cb);
   camera.lookAt(camLook);
-  if (!reduceMotion) camera.rotateZ(clamp((g.x - laneX(g.lane)) * 0.035, -0.06, 0.06) * (1 - cb));
   const tfov = (sup ? 74 : 60) * (1 - cb) + 38 * cb; camFov += (tfov - camFov) * Math.min(1, dt * 4);
   if (Math.abs(camera.fov - camFov) > 0.05){ camera.fov = camFov; camera.updateProjectionMatrix(); }
   // shift the frame so the figure sits beside the creator panel (left of it on wide screens, above it on narrow ones)
