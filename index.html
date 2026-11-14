@@ -292,7 +292,7 @@ canvas#game{ display:block; width:100%; height:100%; cursor:pointer; -webkit-tap
 
   <div class="game" id="gameEl">
     <div class="stage" id="stage">
-      <canvas id="game" role="img" aria-label="Spillet. Bytt fil med piltastene, hopp med pil opp, skli med pil ned."></canvas>
+      <canvas id="game" role="img" aria-label="Spillet. Bytt fil med pil venstre og høyre eller A og D, hopp med pil opp eller W, skli med pil ned eller S."></canvas>
       <div class="ov hud3d" aria-hidden="true">
         <div class="hud-left">
           <span class="hlab">Åpne avvik</span>
@@ -327,7 +327,7 @@ canvas#game{ display:block; width:100%; height:100%; cursor:pointer; -webkit-tap
     </div>
   </div>
   <div class="hintrow">
-    <p class="hint">Bytt fil med pil venstre og høyre, hopp med pil opp, og hopp igjen i luften for dobbelthopp. Skli med pil ned. På mobil sveiper du. Pause: P. Fullskjerm: F.</p>
+    <p class="hint">Bytt fil med pil venstre og høyre eller A og D. Hopp med pil opp eller W, og hopp igjen i luften for dobbelthopp. Skli med pil ned eller S. På mobil sveiper du. Pause: P. Fullskjerm: F.</p>
     <span class="btns"><button class="btn small" id="playBtn" type="button">Start spillet</button><button class="ghost" id="rulesBtn" type="button">Regler</button><button class="ghost" id="fsBtn" type="button">Fullskjerm</button><button class="ghost" id="soundBtn" type="button" aria-pressed="true">Lyd og musikk på</button><button class="ghost" id="gfxBtn" type="button">Grafikk: auto</button></span>
   </div>
 
@@ -340,9 +340,9 @@ canvas#game{ display:block; width:100%; height:100%; cursor:pointer; -webkit-tap
     <section class="panel" aria-labelledby="keysTitle">
       <h2 id="keysTitle">Slik styrer du</h2>
       <ul class="keys">
-        <li><span><kbd>←</kbd><kbd>→</kbd></span><span>Bytt fil. Sveip til siden på mobil.</span></li>
-        <li><span><kbd>↑</kbd><kbd>Mellomrom</kbd></span><span>Hopp. Trykk en gang til i luften for dobbelthopp over folk, skilt og biler. Sveip opp eller trykk.</span></li>
-        <li><span><kbd>↓</kbd></span><span>Skli under stillas. I luften tar du deg raskt ned igjen. Sveip ned.</span></li>
+        <li><span><kbd>←</kbd><kbd>→</kbd><kbd>A</kbd><kbd>D</kbd></span><span>Bytt fil. Sveip til siden på mobil.</span></li>
+        <li><span><kbd>↑</kbd><kbd>W</kbd><kbd>Mellomrom</kbd></span><span>Hopp. Trykk en gang til i luften for dobbelthopp over folk, skilt og biler. Sveip opp eller trykk.</span></li>
+        <li><span><kbd>↓</kbd><kbd>S</kbd></span><span>Skli under stillas. I luften tar du deg raskt ned igjen. Sveip ned.</span></li>
         <li><span><kbd>P</kbd><kbd>F</kbd></span><span>Pause og fullskjerm.</span></li>
       </ul>
     </section>
@@ -381,7 +381,7 @@ canvas#game{ display:block; width:100%; height:100%; cursor:pointer; -webkit-tap
         </ul>
       </section>
     </div>
-    <p class="small">Piltaster eller sveip: til siden for å bytte fil, opp for å hoppe, ned for å skli. Hopp en gang til i luften for dobbelthopp.</p>
+    <p class="small">Piltaster, WASD eller sveip: til siden for å bytte fil, opp for å hoppe, ned for å skli. Hopp en gang til i luften for dobbelthopp.</p>
     <button class="btn" id="startBtn" type="button">Start skiftet</button>
   </div>
 </div>
