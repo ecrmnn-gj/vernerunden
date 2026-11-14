@@ -1463,6 +1463,7 @@ let state = 'start', g = null, overAt = 0;
 let localBest = Number(store.get('vr3d:best', 0)) || 0, remoteBest = 0;
 // Other modules cannot assign to imported bindings, so the run's state changes through these.
 function setState(s){ state = s; }
+function setG(run){ g = run; }
 function setOverAt(t){ overAt = t; }
 function setLocalBest(m){ localBest = m; }
 const SPEED0 = 11, ACCEL = 0.3, BASE_CAP = Infinity, GRAV = 32, JUMP_V = 11.2, DJUMP_V = 9.4;
@@ -1477,7 +1478,7 @@ function clearWorld(){
 }
 function newGame(){
   clearWorld();
-  g = {
+  setG({
     t:0, dist:0, base:SPEED0, speed:SPEED0, boostF:1, boost:null,
     lane:0, x:0, y:0, vy:0, onGround:true, jumps:0, slideT:0, phase:0, invuln:0, stumble:0,
     tail:[], counts:{}, total:0, closed:0, lastAvvikM:0, streak:0, apps:0,
@@ -1486,7 +1487,7 @@ function newGame(){
     hakeTimer:rand(3, 4.5), gearTimer:rand(8, 11), appTimer:rand(20, 28), rivalTimer:rand(9, 13), tilsynTimer:rand(18, 26), kidTimer:rand(14, 22),
     wrongApp:null, rivals:[], caught:false, fell:false, fellGrop:false, endT:0, nextMile:250, recordShown:false,
     shake:0, hitstop:0, cd:0, fov:60, fogNear:FOG.near, fogFar:FOG.far
-  };
+  });
   player.root.position.set(0, 0, 0); player.root.rotation.set(0, 0, 0); poseReset(player);
   updateHud(true);
 }
