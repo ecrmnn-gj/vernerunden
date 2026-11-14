@@ -89,6 +89,7 @@ function labelSprite(text, opts = {}){
 
 /* ---------- Audio ---------- */
 let actx = null, master = null, noiseBuf = null, soundOn = store.get('vr3d:sound', true);
+function setSoundOn(on){ soundOn = on; }
 function ensureAudio(){
   if (!actx){
     try {
@@ -178,7 +179,7 @@ function sfxWhistle(){ if (!soundOn || !actx) return; const t = actx.currentTime
 function sfxSad(){ if (!soundOn || !actx) return; const t = actx.currentTime; [392, 370, 349.2].forEach((f, i) => tone(f, 0.3, 'triangle', 0.16, f * 0.97, t + i * 0.32)); tone(330, 0.9, 'triangle', 0.16, 300, t + 0.96); }
 const soundBtn = $('soundBtn');
 function syncSoundBtn(){ soundBtn.textContent = soundOn ? 'Lyd og musikk på' : 'Lyd og musikk av'; soundBtn.setAttribute('aria-pressed', String(soundOn)); }
-soundBtn.addEventListener('click', () => { soundOn = !soundOn; store.set('vr3d:sound', soundOn); syncSoundBtn(); if (soundOn){ ensureAudio(); if (state === 'playing') startMusic(); } else stopMusic(); });
+soundBtn.addEventListener('click', () => { setSoundOn(!soundOn); store.set('vr3d:sound', soundOn); syncSoundBtn(); if (soundOn){ ensureAudio(); if (state === 'playing') startMusic(); } else stopMusic(); });
 syncSoundBtn();
 
 /* ---------- Graphics quality ---------- */
@@ -193,6 +194,8 @@ const coarse = matchMedia('(pointer: coarse)').matches;
 let gfxPref = store.get('vr3d:gfx', 'auto'); if (!GFX_LABEL[gfxPref]) gfxPref = 'auto';
 let gfxTier = gfxPref === 'auto' ? (coarse ? 'medium' : 'high') : gfxPref;
 const Q = () => GFX_TIERS[gfxTier];
+function setGfxTier(t){ gfxTier = t; }
+function setGfxPref(p){ gfxPref = p; }
 
 /* ---------- Three.js scene ---------- */
 const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, powerPreference:'high-performance', stencil:false });
@@ -1240,6 +1243,8 @@ function validChar(c){
 }
 let charSaved = validChar(store.get('vr3d:char', null));
 let char = Object.assign({}, charSaved || CHAR_DEFAULT);
+function setChar(c){ char = c; }
+function saveChar(){ charSaved = Object.assign({}, char); store.set('vr3d:char', charSaved); }
 const sameChar = (a, b) => Object.keys(CHAR_OPTS).every(k => a[k] === b[k]);
 function randomChar(){
   const female = Math.random() < 0.5, opt = k => pick(CHAR_OPTS[k].opts)[0];
@@ -1261,6 +1266,7 @@ function charToHuman(c){
     vest:green ? M.green : vestMat(c.vest), stripe:green ? M.yellowGlow : stripeSilver, helmet:smat(c.helmet, 0.32, 0.05), gloves:smat('#C7B48A', 0.8), kneepads:true, backText:'VERNEOMBUD' };
 }
 let player = null, playerMats = [], playerRainbow = false;
+function setPlayerRainbow(on){ playerRainbow = on; }
 // (Re)build the player from `char`, keeping where it stands. Each mesh gets its own material so super speed can tint them.
 function buildPlayer(){
   const keep = player && { p:player.root.position.clone(), r:player.root.rotation.clone() };
@@ -1455,6 +1461,10 @@ function buildPickup(kind, name){
 /* ---------- State ---------- */
 let state = 'start', g = null, overAt = 0;
 let localBest = Number(store.get('vr3d:best', 0)) || 0, remoteBest = 0;
+// Other modules cannot assign to imported bindings, so the run's state changes through these.
+function setState(s){ state = s; }
+function setOverAt(t){ overAt = t; }
+function setLocalBest(m){ localBest = m; }
 const SPEED0 = 11, ACCEL = 0.3, BASE_CAP = Infinity, GRAV = 32, JUMP_V = 11.2, DJUMP_V = 9.4;
 
 function clearWorld(){
@@ -1500,6 +1510,10 @@ function pop(text, color, life, sub){
 function flash(color, strength){
   flashEl.style.setProperty('--fc', `var(--${color})`);
   return;
+}
+function tickOverlays(dt){
+  if (capT > 0){ capT -= dt; if (capT <= 0) capEl.classList.remove('show'); }
+  if (popT > 0){ popT -= dt; if (popT <= 0) popEl.classList.remove('show'); }
 }
 function boom(color, f, shake){ flash(color, f); g.shake = Math.max(g.shake, shake); }
 
@@ -1579,7 +1593,7 @@ function addAvvik(type){
   puff(g.x, 0.4, -0.4, 14, 0.5, 0.55, 0.5, 2.2); sparkle(g.x, 1.0, -0.4, 14, COL.white, 5);
   caption(d.hit, 'red'); pop(k > 1 ? 'DOBBELT AVVIK!' : 'AVVIK!', 'red', 1.15, wasSuper ? 'Superhastigheten er over' : k > 1 ? 'Lastet ned feil app' : d.label); sfxHit();
   if (g.tail.length >= MAX_OPEN){
-    state = 'ending'; g.endT = 2.0; g.ev = null; stopMusic();
+    setState('ending'); g.endT = 2.0; g.ev = null; stopMusic();
     caption('Fem åpne avvik. Arbeidet stanses.', 'red', 3);
     pop('ARBEIDET\nSTANSES!', 'red', 2, 'Fem åpne avvik på en gang');
   }
@@ -1587,7 +1601,7 @@ function addAvvik(type){
 function fallIn(o){
   g.fell = true; g.fellGrop = o.type === 'grop'; g.total++;
   g.streak = Math.max(g.streak, g.dist - g.lastAvvikM);
-  state = 'ending'; g.endT = 2.0; g.ev = null; stopMusic(); g.vy = 0; g.hang = 0.3;
+  setState('ending'); g.endT = 2.0; g.ev = null; stopMusic(); g.vy = 0; g.hang = 0.3;
   boom('red', 0.6, 0.3);
   caption(g.fellGrop ? 'Du falt ned i byggegropa. Arbeidet stanses.' : 'Du falt ned i hullet. Arbeidet stanses.', 'red', 3);
   pop(g.fellGrop ? 'NED I\nBYGGEGROPA!' : 'NED I\nHULLET!', 'red', 1.9, 'Arbeidet stanses');
@@ -1596,7 +1610,7 @@ function fallIn(o){
 function caught(o){
   g.caught = true; o.caught = true; o.vz = 0; o.z = -2.3; o.x = g.x + (g.lane < 1 ? 0.95 : -0.95); g.total++;
   g.streak = Math.max(g.streak, g.dist - g.lastAvvikM);
-  state = 'ending'; g.endT = 2.3; g.ev = null; stopMusic();
+  setState('ending'); g.endT = 2.3; g.ev = null; stopMusic();
   boom('red', 0.6, 0.35);
   caption('Stoppet av Arbeidstilsynet.', 'red', 3);
   pop('STOPPET AV\nARBEIDSTILSYNET!', 'red', 2.1, 'Vernerunden er over');
@@ -1643,7 +1657,7 @@ function downloadApp(){
   confetti([P.green, P.yellow, P.halo, P.gold, P.blue, P.orange], reduceMotion ? 40 : 110, 1.6);
   sfxCheer();
   if (g.boost && g.boost.phase !== 'loading'){ g.boost.phase = 'super'; g.boost.left = 10; }
-  else if (!g.boost){ g.boost = { phase:'loading', t:0 }; stopMusic(); state = 'loading'; }
+  else if (!g.boost){ g.boost = { phase:'loading', t:0 }; stopMusic(); setState('loading'); }
 }
 function wrongApp(){
   g.wrongApp = true; g.rivals.push(1);
@@ -1657,7 +1671,7 @@ function updateBoost(dt){
     b.t += dt;
     if (b.phase === 'loading'){
       if (b.t >= 1.0 && !b.barSfx){ b.barSfx = true; if (soundOn && actx){ const t = actx.currentTime + 0.02; [392, 440, 493.88, 523.25, 587.33, 659.25, 739.99, 783.99].forEach((f, i) => note(f, t + i * 0.1, 0.14, 'sine', 0.06, 0.008)); } }
-      if (b.t >= 1.9){ b.phase = 'super'; b.left = 10; state = 'playing'; pop('SUPERHASTIGHET!', 'yellow', 1.4, '10 sekunder. Immun mot alle hindringer.'); boom('yellow', 0.5, 0.35); sfxWhoosh(); startMusic(); }
+      if (b.t >= 1.9){ b.phase = 'super'; b.left = 10; setState('playing'); pop('SUPERHASTIGHET!', 'yellow', 1.4, '10 sekunder. Immun mot alle hindringer.'); boom('yellow', 0.5, 0.35); sfxWhoosh(); startMusic(); }
     } else if (b.phase === 'super'){ target = 1.75; b.left -= dt; if (b.left <= 0){ b.phase = 'down'; b.down = 1.3; } }
     else if (b.phase === 'down'){ b.down -= dt; if (b.down <= 0){ g.boost = null; g.invuln = Math.max(g.invuln, 0.6); caption('Superhastigheten er over. Immuniteten er borte.', 'green', 2.4); } }
   }
@@ -1950,7 +1964,7 @@ function updateSpeedLines(dt, k){
 
 const camPos = new THREE.Vector3(0, 2.75, 5.3), camLook = new THREE.Vector3(0, 1.15, -12);
 // creator view: crBlend eases the camera between the running view and a front-on portrait of the player
-let crBlend = 0, camFov = 60, stageW = 1, stageH = 1;
+let crBlend = 0, camFov = 60;
 const crFx = { hop:0, spin:0, drag:null };
 function render(time, dt){
   // player pose
@@ -1996,9 +2010,9 @@ function render(time, dt){
   if (sup){
     const hue = (time * (reduceMotion ? 0.4 : 2.6)) % 1, k = reduceMotion ? 0.5 : 0.45 + 0.35 * Math.abs(Math.sin(time * 16));
     playerMats.forEach((m, i) => { m.emissive.setHSL((hue + i * 0.035) % 1, 1, 0.5); m.emissiveIntensity = k; });
-    playerRainbow = true;
+    setPlayerRainbow(true);
     if (state === 'playing' && !reduceMotion) for (let i = 0; i < 2; i++) FX.spark.emit(g.x + rand(-0.3, 0.3), g.y + rand(0.3, 1.7), rand(0.1, 0.4), rand(-0.5, 0.5), rand(-0.2, 0.6), rand(2, 5), { color:new THREE.Color().setHSL((hue + rand(0, 0.3)) % 1, 1, 0.6).multiplyScalar(3), life:rand(0.3, 0.6), size:rand(0.06, 0.12), scroll:0.3 });
-  } else if (playerRainbow){ for (const m of playerMats){ m.emissive.copy(m.userData.e0); m.emissiveIntensity = m.userData.i0; } playerRainbow = false; }
+  } else if (playerRainbow){ for (const m of playerMats){ m.emissive.copy(m.userData.e0); m.emissiveIntensity = m.userData.i0; } setPlayerRainbow(false); }
 
   pr.visible = !(g && g.invuln > 0 && state === 'playing' && Math.floor(g.invuln * 12) % 2 === 0);
   // pickups spin and bob
@@ -2062,8 +2076,7 @@ function render(time, dt){
   post.render(time);
 
   // overlays
-  if (capT > 0){ capT -= dt; if (capT <= 0) capEl.classList.remove('show'); }
-  if (popT > 0){ popT -= dt; if (popT <= 0) popEl.classList.remove('show'); }
+  tickOverlays(dt);
   noiseEl.classList.toggle('show', !!(g.ev && g.ev.type === 'noise' && g.ev.warn <= 0));
   noiseEl.classList.toggle('calm', g.ore > 0); noiseEl.textContent = g.ore > 0 ? 'brrt' : 'BRRRRRRT';
   warnEl.classList.toggle('show', !!(g.ev && g.ev.warn > 0));
@@ -2091,6 +2104,7 @@ function updateHud(force){
 
 /* ---------- Sizing and fullscreen ---------- */
 const gameEl = $('gameEl');
+let stageW = 1, stageH = 1;
 function resize(){
   const r = stage.getBoundingClientRect();
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, Q().dpr));
@@ -2102,10 +2116,10 @@ function resize(){
 // graphics quality: a button cycles auto, high, medium and low; auto also steps down by itself if frames are slow
 const gfxBtn = $('gfxBtn');
 function syncGfxBtn(){ gfxBtn.textContent = 'Grafikk: ' + (gfxPref === 'auto' ? `auto (${GFX_LABEL[gfxTier]})` : GFX_LABEL[gfxPref]); }
-function setTier(t){ gfxTier = t; post.setup(); fitShadow(); resize(); syncGfxBtn(); }
+function setTier(t){ setGfxTier(t); post.setup(); fitShadow(); resize(); syncGfxBtn(); }
 gfxBtn.addEventListener('click', () => {
   const order = ['auto', 'high', 'medium', 'low'];
-  gfxPref = order[(order.indexOf(gfxPref) + 1) % order.length]; store.set('vr3d:gfx', gfxPref);
+  setGfxPref(order[(order.indexOf(gfxPref) + 1) % order.length]); store.set('vr3d:gfx', gfxPref);
   setTier(gfxPref === 'auto' ? (coarse ? 'medium' : 'high') : gfxPref);
 });
 const perf = { acc:0, n:0 };
@@ -2134,18 +2148,18 @@ document.addEventListener('fullscreenchange', onFsChange); document.addEventList
 /* ---------- Flow ---------- */
 const startModal = $('startModal'), overModal = $('overModal');
 function startGame(){
-  ensureAudio(); newGame(); state = 'countdown'; g.cd = 2.1; showCount(3);
+  ensureAudio(); newGame(); setState('countdown'); g.cd = 2.1; showCount(3);
   startModal.hidden = true; overModal.hidden = true;
   if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
   sfxBeep(false);
 }
 function showCount(n){ cdEl.textContent = String(n); cdEl.classList.remove('show'); void cdEl.offsetWidth; cdEl.classList.add('show'); }
-function pause(){ if (state === 'playing'){ state = 'paused'; stopMusic(); pauseEl.classList.add('show'); } }
-function resume(){ if (state === 'paused'){ state = 'playing'; startMusic(); pauseEl.classList.remove('show'); } }
+function pause(){ if (state === 'playing'){ setState('paused'); stopMusic(); pauseEl.classList.add('show'); } }
+function resume(){ if (state === 'paused'){ setState('playing'); startMusic(); pauseEl.classList.remove('show'); } }
 
 const OBS_DONE = new Set(['hull', 'grop', 'tilsyn']);
 async function showGameOver(){
-  state = 'over'; overAt = performance.now(); stopMusic();
+  setState('over'); setOverAt(performance.now()); stopMusic();
   const m = Math.floor(g.dist);
   g.streak = Math.max(g.streak, m - g.lastAvvikM);
   $('stMeters').textContent = fmtM(m);
@@ -2167,8 +2181,8 @@ async function showGameOver(){
   if (!ol.children.length) add('Ingen funn', 'Fortsett det gode arbeidet.');
   const rec = $('overRecord'), prev = Math.max(localBest, remoteBest);
   rec.textContent = (m > prev && m > 0) ? 'Ny personlig rekord!' : 'Din lengste vernerunde: ' + fmtM(prev) + '.';
-  if (m > localBest){ localBest = m; store.set('vr3d:best', localBest); }
-  lastRun = { meters:m, secs:Math.round(g.t), saved:false };
+  if (m > localBest){ setLocalBest(m); store.set('vr3d:best', localBest); }
+  setLastRun({ meters:m, secs:Math.round(g.t), saved:false });
   saveBtn.disabled = !db || m <= 0;
   saveMsg.textContent = !db ? 'Topplisten er ikke tilgjengelig her, så resultatet kan ikke lagres.' : m <= 0 ? 'Gå minst én meter for å komme på listen.' : '';
   overModal.hidden = false;
@@ -2227,22 +2241,22 @@ function openCreator(){
   ensureAudio();
   startModal.hidden = true; overModal.hidden = true;
   crBackup = Object.assign({}, char);
-  newGame(); state = 'create'; crFx.spin = 0;
+  newGame(); setState('create'); crFx.spin = 0;
   $('crCancel').hidden = !charSaved;
   syncCreatorUi(); syncStartUi();
   crGroups.scrollTop = 0;
   const first = creatorEl.querySelector('input:checked'); if (first) first.focus({ preventScroll:true });
 }
 function closeCreator(){
-  state = 'start'; syncStartUi();
+  setState('start'); syncStartUi();
   $('startBtn2').focus({ preventScroll:true });
 }
 function cancelCreator(){
-  if (crBackup && !sameChar(crBackup, char)){ char = crBackup; buildPlayer(); }
+  if (crBackup && !sameChar(crBackup, char)){ setChar(crBackup); buildPlayer(); }
   closeCreator();
 }
 function saveAndStart(){
-  charSaved = Object.assign({}, char); store.set('vr3d:char', charSaved);
+  saveChar();
   startGame();
 }
 creatorEl.addEventListener('change', e => {
@@ -2251,8 +2265,8 @@ creatorEl.addEventListener('change', e => {
   char[t.name.slice(3)] = t.value; charChanged();
 });
 creatorEl.addEventListener('submit', e => { e.preventDefault(); saveAndStart(); });
-$('crRandom').addEventListener('click', () => { let c; do { c = randomChar(); } while (sameChar(c, char)); char = c; syncCreatorUi(); charChanged(); });
-$('crNew').addEventListener('click', () => { char = Object.assign({}, CHAR_DEFAULT); syncCreatorUi(); charChanged(); });
+$('crRandom').addEventListener('click', () => { let c; do { c = randomChar(); } while (sameChar(c, char)); setChar(c); syncCreatorUi(); charChanged(); });
+$('crNew').addEventListener('click', () => { setChar(Object.assign({}, CHAR_DEFAULT)); syncCreatorUi(); charChanged(); });
 $('crCancel').addEventListener('click', cancelCreator);
 charBtn.addEventListener('click', openCreator);
 charBtn2.addEventListener('click', openCreator);
@@ -2321,7 +2335,7 @@ function frame(now){
   if (state === 'playing' || state === 'loading') update(dt);
   else if (state === 'countdown'){
     const before = Math.ceil(g.cd / 0.7 - 0.001); g.cd -= dt; const after = Math.ceil(g.cd / 0.7 - 0.001);
-    if (g.cd <= 0){ state = 'playing'; cdEl.classList.remove('show'); pop('GÅ!', 'green', 0.8); sfxBeep(true); startMusic(); }
+    if (g.cd <= 0){ setState('playing'); cdEl.classList.remove('show'); pop('GÅ!', 'green', 0.8); sfxBeep(true); startMusic(); }
     else if (after !== before){ showCount(after); sfxBeep(false); }
   } else if (state === 'ending') updateEnding(dt);
   if (g) updateFx(dt);
@@ -2345,6 +2359,7 @@ const JSONSILO = {
 const READ_URL = `${JSONSILO.base}/public/${JSONSILO.silo}`;
 const MANAGE_URL = `${JSONSILO.base}/api/v1/manage/${JSONSILO.silo}`;
 let db = !!(JSONSILO.silo && JSONSILO.key), boardDocs = [], lastRun = null, siloMeta = null, loading = false;
+function setLastRun(r){ lastRun = r; }
 const myEntries = new Set();
 const boardEl = $('board'), boardNote = $('boardNote');
 const saveForm = $('saveForm'), nameInput = $('nameInput'), saveBtn = $('saveBtn'), saveMsg = $('saveMsg');
