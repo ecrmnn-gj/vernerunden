@@ -216,6 +216,7 @@ sun.castShadow = true;
 sun.shadow.camera.up.set(0, 0, -1); // align the shadow map with the track so its texels are spent along the road
 sun.shadow.bias = -0.0003; sun.shadow.normalBias = 0.035;
 scene.add(sun); scene.add(sun.target);
+const SHADOW_Z = [-64, 10]; // the stretch of track the shadow map covers, from far ahead to just behind the camera
 function fitShadow(){
   const [sw, sh] = Q().shadow;
   if (sun.shadow.mapSize.x !== sw || sun.shadow.mapSize.y !== sh){ sun.shadow.mapSize.set(sw, sh); if (sun.shadow.map){ sun.shadow.map.dispose(); sun.shadow.map = null; } }
@@ -225,7 +226,7 @@ function fitShadow(){
   const cam = sun.shadow.camera; cam.position.copy(sun.position); cam.lookAt(tgt); cam.updateMatrixWorld(); cam.matrixWorldInverse.copy(cam.matrixWorld).invert();
   // Cover the track from just behind the camera to 64 m ahead, including tall props beside the road.
   let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity, z0 = Infinity, z1 = -Infinity; const v = new THREE.Vector3();
-  for (const x of [-9, 9]) for (const y of [0, 9]) for (const z of [-64, 10]){ v.set(x, y, z).applyMatrix4(cam.matrixWorldInverse); x0 = Math.min(x0, v.x); x1 = Math.max(x1, v.x); y0 = Math.min(y0, v.y); y1 = Math.max(y1, v.y); z0 = Math.min(z0, v.z); z1 = Math.max(z1, v.z); }
+  for (const x of [-9, 9]) for (const y of [0, 9]) for (const z of SHADOW_Z){ v.set(x, y, z).applyMatrix4(cam.matrixWorldInverse); x0 = Math.min(x0, v.x); x1 = Math.max(x1, v.x); y0 = Math.min(y0, v.y); y1 = Math.max(y1, v.y); z0 = Math.min(z0, v.z); z1 = Math.max(z1, v.z); }
   Object.assign(cam, { left:x0, right:x1, bottom:y0, top:y1, near:Math.max(0.5, -z1 - 60), far:-z0 + 4 }); cam.updateProjectionMatrix();
 }
 fitShadow();
@@ -671,7 +672,19 @@ function bake(root, shallow){
   return root;
 }
 function disposeBaked(root){ root.traverse(o => { if (o.userData.baked) o.geometry.dispose(); }); }
-function addScen(obj, z){ bake(obj); obj.position.z = z; scene.add(obj); scenery.push(obj); }
+function addScen(obj, z){ bake(obj); obj.position.z = z; obj.userData.wrapZ = scenWrapZ(obj); scene.add(obj); scenery.push(obj); }
+// The sun is behind the runner, so tall scenery throws its shadow forward across the road: a 25 m building
+// 18 m behind the camera still shades the road ahead. Scenery therefore only wraps round to the far end once its
+// shadow has also left the shadow-mapped stretch, or the shadow would vanish in a single frame. The wrap point is
+// capped so the object still reappears beyond the fog. Cranes slew, so the horizontal reach uses the full radius.
+const _scenBox = new THREE.Box3();
+function scenWrapZ(obj){
+  const b = _scenBox.setFromObject(obj), p = obj.position;
+  let r = 0;
+  for (const x of [b.min.x, b.max.x]) for (const z of [b.min.z, b.max.z]) r = Math.max(r, Math.hypot(x - p.x, z - p.z));
+  const reach = r + Math.max(0, b.max.y) * SUN_DIR.z / SUN_DIR.y;
+  return clamp(SHADOW_Z[1] + reach, Z_NEAR, LOOP - FOG.far - 10);
+}
 const SIGNS = {};
 const logoImg = new Image(), logoTexs = [];
 logoImg.onload = () => { for (const t of logoTexs) repaint(t); };
@@ -1788,7 +1801,7 @@ function update(dt){
     if (p.z > 10){ scene.remove(p.mesh); g.pickups.splice(i, 1); }
   }
   // scenery scroll
-  for (const s of scenery){ s.position.z += dz; if (s.position.z > Z_NEAR) s.position.z -= LOOP; }
+  for (const s of scenery){ s.position.z += dz; if (s.position.z > s.userData.wrapZ) s.position.z -= LOOP; }
   for (const b of skyline){ b.position.z += dz * 0.12; if (b.position.z > 30) b.position.z -= SKY_SPAN; }
   updateHud();
 }
