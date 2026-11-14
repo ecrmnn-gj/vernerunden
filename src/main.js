@@ -1491,7 +1491,7 @@ function pop(text, color, life, sub){
   popEl.style.setProperty('--pc', `var(--${color || 'yellow'})`);
   popEl.style.setProperty('--tilt', (rand(-4, 3)).toFixed(1) + 'deg');
   const lines = text.split('\n'), maxLen = Math.max(...lines.map(l => l.length));
-  popMain.style.fontSize = `clamp(30px, ${Math.min(10, 150 / maxLen).toFixed(2)}cqw, 116px)`;
+  popMain.style.fontSize = `clamp(26.5px, ${Math.min(8.8, 132 / maxLen).toFixed(2)}cqw, 102px)`;
   popMain.replaceChildren(...lines.map(l => { const d = document.createElement('div'); d.textContent = l; return d; }));
   popSub.textContent = sub || '';
   popEl.classList.remove('show'); void popEl.offsetWidth; popEl.classList.add('show');
