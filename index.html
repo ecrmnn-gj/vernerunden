@@ -226,6 +226,41 @@ canvas#game{ display:block; width:100%; height:100%; cursor:pointer; -webkit-tap
 .saverow .btn{ font-size:19px; padding:10px 18px; }
 .savemsg{ font-size:14px; min-height:1.3em; margin:7px 0 0; color:var(--letter-muted); }
 .letter > .btn{ margin-top:12px; }
+.letter > .ghost{ margin:12px 0 0 8px; background:transparent; color:var(--letter-ink); border-color:var(--letter-ink); font-size:15px; padding:11px 14px; }
+.startov-row{ display:flex; flex-wrap:wrap; justify-content:center; gap:8px; }
+
+/* Character creator: a panel over the stage while the camera frames the figure */
+.creator{ position:absolute; z-index:4; top:12px; right:12px; bottom:12px; width:min(370px, 44%); display:flex; flex-direction:column; background:var(--hud-bg); background:color-mix(in srgb, var(--hud-bg) 93%, transparent); color:var(--hud-ink); border-radius:10px; overflow:hidden; box-shadow:0 18px 40px rgba(0,0,0,.35); }
+.creator[hidden]{ display:none; }
+.creator .hazard{ height:6px; flex:none; }
+.cr-head{ flex:none; padding:12px 16px 6px; }
+.cr-head h2{ margin:0; font:italic 900 clamp(24px, 3.4cqw, 32px)/1 "Barlow Condensed","Arial Narrow",sans-serif; color:var(--yellow); }
+.cr-head p{ margin:4px 0 0; font-size:13px; color:var(--hud-muted); }
+.cr-scroll{ flex:1 1 auto; min-height:0; overflow-y:auto; overscroll-behavior:contain; touch-action:pan-y; padding:0 16px 6px; }
+.cr-group{ border:0; margin:0; padding:10px 0 12px; border-top:1px solid var(--hud-line); min-width:0; }
+.cr-group legend{ float:left; width:100%; padding:0; margin:0 0 8px; font:600 13px/1.2 "Barlow",sans-serif; color:var(--hud-muted); }
+.cr-opts{ clear:both; display:flex; flex-wrap:wrap; gap:7px; }
+.cr-opt{ position:relative; display:block; cursor:pointer; }
+.cr-opt input{ position:absolute; opacity:0; width:1px; height:1px; margin:0; pointer-events:none; }
+.cr-chip span{ display:block; font:600 14px/1 "Barlow",sans-serif; padding:8px 12px; border-radius:20px; border:1px solid var(--hud-line); color:var(--hud-ink); }
+.cr-chip:hover span{ border-color:var(--hud-muted); }
+.cr-chip input:checked + span{ background:var(--green); border-color:var(--green); color:var(--green-ink); }
+.cr-sw .dot{ display:block; width:32px; height:32px; border-radius:50%; background:var(--c); box-shadow:inset 0 0 0 1px rgba(255,255,255,.22), inset 0 -6px 10px rgba(0,0,0,.18); }
+.cr-sw input:checked + .dot{ box-shadow:0 0 0 2px var(--hud-bg), 0 0 0 4.5px var(--yellow), inset 0 -6px 10px rgba(0,0,0,.18); }
+.cr-opt input:focus-visible + *{ outline:3px solid var(--yellow); outline-offset:3px; }
+.cr-actions{ flex:none; display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:10px 16px 14px; border-top:1px solid var(--hud-line); }
+.cr-actions .ghost{ background:transparent; color:var(--hud-ink); border-color:var(--hud-line); }
+.cr-actions .ghost:hover{ border-color:var(--hud-muted); }
+.cr-actions .ghost[hidden]{ display:none; }
+.cr-actions .btn{ margin-left:auto; font-size:21px; padding:10px 18px; }
+.stage.creating .hud3d{ display:none; }
+.stage.creating canvas#game{ cursor:grab; }
+.stage.creating canvas#game:active{ cursor:grabbing; }
+@container (max-width: 640px){
+  .creator{ top:auto; left:8px; right:8px; bottom:8px; width:auto; height:min(58%, 430px); }
+  .cr-head{ padding:10px 14px 4px; } .cr-head p{ display:none; }
+  .cr-scroll{ padding:0 14px 4px; } .cr-actions{ padding:8px 14px 10px; }
+}
 .hud3d{ top:12px; left:14px; right:14px; display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
 .hlab{ display:block; font:italic 800 clamp(13px, 2.3cqw, 19px)/1 "Barlow Condensed","Arial Narrow",sans-serif; color:var(--halo); letter-spacing:.01em;
   text-shadow:-2px -2px 0 var(--outline), 2px -2px 0 var(--outline), -2px 2px 0 var(--outline), 2px 2px 0 var(--outline), 2px 3px 0 var(--outline); margin-bottom:6px; }
@@ -276,7 +311,18 @@ canvas#game{ display:block; width:100%; height:100%; cursor:pointer; -webkit-tap
       <svg class="ov warn" id="warnTri" viewBox="0 0 44 40" aria-hidden="true"><path d="M22 3 L41 37 H3 Z" fill="var(--yellow)" stroke="var(--outline)" stroke-width="3" stroke-linejoin="round"/><text x="22" y="32" text-anchor="middle" font-family="Barlow Condensed, sans-serif" font-weight="800" font-size="22" fill="var(--outline)">!</text></svg>
       <div class="ov flash" id="flash"></div>
       <div class="ov pausebox" id="pauseBox"><b>Pause</b><span>Lovpålagt pause. Trykk P eller på spillet for å fortsette.</span></div>
-      <div class="startov" id="startOv" hidden><button class="btn big" id="startBtn2" type="button">Start spillet</button><button class="ghost" id="rulesBtn2" type="button">Se reglene</button></div>
+      <div class="startov" id="startOv" hidden><button class="btn big" id="startBtn2" type="button">Start spillet</button><span class="startov-row"><button class="ghost" id="charBtn" type="button">Lag figur</button><button class="ghost" id="rulesBtn2" type="button">Se reglene</button></span></div>
+      <form class="creator" id="creator" hidden aria-labelledby="crTitle" autocomplete="off">
+        <div class="hazard" aria-hidden="true"></div>
+        <div class="cr-head"><h2 id="crTitle">Lag ditt verneombud</h2><p>Dra i figuren for å snu den.</p></div>
+        <div class="cr-scroll" id="crGroups"></div>
+        <div class="cr-actions">
+          <button class="ghost" id="crRandom" type="button">Tilfeldig</button>
+          <button class="ghost" id="crNew" type="button">Ny figur</button>
+          <button class="ghost" id="crCancel" type="button">Avbryt</button>
+          <button class="btn" id="crStart" type="submit">Start skiftet</button>
+        </div>
+      </form>
       <button class="fsexit" id="fsExit" type="button">Avslutt fullskjerm</button>
     </div>
   </div>
@@ -369,7 +415,7 @@ canvas#game{ display:block; width:100%; height:100%; cursor:pointer; -webkit-tap
       </div>
       <p class="savemsg" id="saveMsg" aria-live="polite"></p>
     </form>
-    <button class="btn" id="againBtn" type="button">Ta skiftet på nytt</button>
+    <button class="btn" id="againBtn" type="button">Ta skiftet på nytt</button><button class="ghost" id="charBtn2" type="button">Endre figur</button>
   </article>
 </div>
 
@@ -967,6 +1013,7 @@ function applyTheme(){
   groundMesh.material.map = TEX.ground; groundMesh.material.needsUpdate = true;
   dirt.material.map = TEX.dirt; dirt.material.needsUpdate = true;
   M.pitWall.map = TEX.dirtPit; M.pitWall.needsUpdate = true;
+  if (player) buildPlayer();
   drawIconCanvases();
 }
 
@@ -1476,27 +1523,34 @@ const HG = {
   neck:new THREE.CylinderGeometry(0.048, 0.055, 0.11, 14),
   cranium:new THREE.SphereGeometry(0.105, 26, 20), jaw:new THREE.SphereGeometry(0.085, 22, 16), nose:new THREE.ConeGeometry(0.018, 0.046, 10),
   eyeW:new THREE.SphereGeometry(0.016, 12, 10), pupil:new THREE.SphereGeometry(0.0085, 8, 6), brow:box(0.036, 0.008, 0.01), mouth:box(0.04, 0.007, 0.01),
-  ear:new THREE.SphereGeometry(0.022, 10, 8), hairTop:new THREE.SphereGeometry(0.112, 26, 16, 0, Math.PI * 2, 0, Math.PI * 0.55), hairBack:new THREE.SphereGeometry(0.1, 20, 14),
+  ear:new THREE.SphereGeometry(0.022, 10, 8), hairTop:new THREE.SphereGeometry(0.112, 26, 16, 0, Math.PI * 2, 0, Math.PI * 0.42), hairBack:new THREE.SphereGeometry(0.1, 20, 14),
   beard:new THREE.SphereGeometry(0.089, 22, 12, 0, Math.PI * 2, Math.PI * 0.42, Math.PI * 0.58),
   dome:new THREE.SphereGeometry(0.136, 28, 14, 0, Math.PI * 2, 0, Math.PI / 2), brim:new THREE.CylinderGeometry(0.15, 0.156, 0.014, 32), ridge:box(0.03, 0.026, 0.25),
   glasses:box(0.15, 0.022, 0.012), lens:box(0.05, 0.03, 0.004),
   joint:new THREE.SphereGeometry(0.06, 14, 10), upper:new THREE.CylinderGeometry(0.054, 0.046, 0.28, 14), fore:new THREE.CylinderGeometry(0.045, 0.037, 0.25, 14), elbow:new THREE.SphereGeometry(0.047, 12, 10),
   palm:new THREE.SphereGeometry(0.045, 14, 10), thumb:new THREE.CylinderGeometry(0.014, 0.012, 0.055, 8),
   thigh:new THREE.CylinderGeometry(0.08, 0.062, 0.44, 16), knee:new THREE.SphereGeometry(0.062, 14, 10), pad:box(0.1, 0.11, 0.03), shin:new THREE.CylinderGeometry(0.06, 0.047, 0.4, 16),
-  bootUp:new THREE.CylinderGeometry(0.056, 0.062, 0.1, 14), foot:box(0.1, 0.07, 0.2), toe:new THREE.SphereGeometry(0.052, 14, 10), sole:box(0.112, 0.022, 0.235)
+  bootUp:new THREE.CylinderGeometry(0.056, 0.062, 0.1, 14), foot:box(0.1, 0.07, 0.2), toe:new THREE.SphereGeometry(0.052, 14, 10), sole:box(0.112, 0.022, 0.235),
+  // hair styles and facial hair
+  hairLong:new THREE.CapsuleGeometry(0.075, 0.2, 6, 16), lock:new THREE.CapsuleGeometry(0.026, 0.1, 4, 10), pony:new THREE.CapsuleGeometry(0.032, 0.16, 4, 12),
+  tie:new THREE.SphereGeometry(0.026, 12, 8), bun:new THREE.SphereGeometry(0.05, 16, 12), curl:new THREE.SphereGeometry(0.03, 10, 8),
+  stache:new THREE.CapsuleGeometry(0.011, 0.04, 4, 8), chin:new THREE.SphereGeometry(0.03, 12, 10), lash:box(0.032, 0.006, 0.006)
 };
+const HAIR_STYLES = ['short', 'long', 'ponytail', 'bun', 'curly', 'bald'], FACIALS = ['none', 'stubble', 'mustache', 'goatee', 'full'];
 let backTex = null;
+// o.female narrows the shoulders and widens the hips; o.hairStyle and o.facial pick from HAIR_STYLES and FACIALS.
 function makeHuman(o){
   const root = new THREE.Group(), body = new THREE.Group(); root.add(body); body.position.y = 0.97;
-  const skin = smat(o.skin || pick(SKINS), 0.62), hairC = o.hair || pick(HAIRS), hair = smat(hairC, 0.85);
+  const skinC = o.skin || pick(SKINS), skin = smat(skinC, 0.62), hairC = o.hair || pick(HAIRS), hair = smat(hairC, 0.85);
   const shirt = o.shirt, pants = o.pants, boots = o.boots || smat('#4A3422', 0.7), soleM = smat('#1A1714', 0.9), dark = smat('#1A1714', 0.6);
-  addMesh(body, HG.hips, pants, 0, 0, 0, 1, 1, 0.74);
-  addMesh(body, HG.torso, shirt, 0, 0, 0, 1, 1, 0.63);
-  addMesh(body, HG.belt, smat('#1C1A18', 0.5), 0, 0.075, 0, 1, 1, 0.75).material.side = THREE.DoubleSide;
+  const bx = o.female ? 0.92 : 1, hx = o.female ? 1.07 : 1;
+  addMesh(body, HG.hips, pants, 0, 0, 0, hx, 1, 0.74 * (o.female ? 1.06 : 1));
+  addMesh(body, HG.torso, shirt, 0, 0, 0, bx, 1, 0.63);
+  addMesh(body, HG.belt, smat('#1C1A18', 0.5), 0, 0.075, 0, hx * 0.98, 1, 0.75).material.side = THREE.DoubleSide;
   if (o.vest){
-    const v = addMesh(body, HG.vest, o.vest, 0, 0, 0, 1, 1, 0.67); v.material.side = THREE.DoubleSide;
-    addMesh(body, HG.band1, o.stripe, 0, 0.29, 0, 1, 1, 0.69); addMesh(body, HG.band2, o.stripe, 0, 0.46, 0, 1, 1, 0.68);
-    for (const x of [-0.085, 0.085]) for (const z of [-0.137, 0.137]){ const st = addMesh(body, HG.strap, o.stripe, x, 0.56, z); st.rotation.x = z < 0 ? 0.18 : -0.18; }
+    const v = addMesh(body, HG.vest, o.vest, 0, 0, 0, bx, 1, 0.67); v.material.side = THREE.DoubleSide;
+    addMesh(body, HG.band1, o.stripe, 0, 0.29, 0, bx, 1, 0.69); addMesh(body, HG.band2, o.stripe, 0, 0.46, 0, bx, 1, 0.68);
+    for (const x of [-0.085, 0.085]) for (const z of [-0.137, 0.137]){ const st = addMesh(body, HG.strap, o.stripe, x * bx, 0.56, z); st.rotation.x = z < 0 ? 0.18 : -0.18; }
     addMesh(body, HG.zip, dark, 0, 0.4, -0.123);
     if (o.backText){
       if (!backTex) backTex = canvasTex(256, 64, (c, w, h) => { c.clearRect(0, 0, w, h); let fs = 46; c.font = `800 ${fs}px ${FONT_C}`; const tw = c.measureText(o.backText).width; if (tw > w - 16){ fs = Math.floor(fs * (w - 16) / tw); c.font = `800 ${fs}px ${FONT_C}`; } c.fillStyle = '#F2F2F0'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(o.backText, w / 2, h / 2 + 2); });
@@ -1509,16 +1563,44 @@ function makeHuman(o){
     for (const x of [-1, 1]){ const l = addMesh(body, HG.lapel, shirt, x * 0.05, 0.54, -0.127); l.rotation.z = x * 0.32; }
     addMesh(body, HG.collar, smat('#F4F4F2', 0.6), 0, 0.665, -0.07);
   }
-  addMesh(body, HG.neck, skin, 0, 0.72, 0);
+  addMesh(body, HG.neck, skin, 0, 0.72, 0, o.female ? 0.88 : 1, 1, o.female ? 0.88 : 1);
   const head = new THREE.Group(); head.position.set(0, 0.855, 0); body.add(head);
   addMesh(head, HG.cranium, skin, 0, 0, 0, 0.93, 1.08, 1.02);
-  addMesh(head, HG.jaw, skin, 0, -0.055, -0.016, 0.95, 0.8, 0.95);
+  if (o.female) addMesh(head, HG.jaw, skin, 0, -0.05, -0.014, 0.86, 0.76, 0.9);
+  else addMesh(head, HG.jaw, skin, 0, -0.055, -0.016, 0.95, 0.8, 0.95);
   const nose = addMesh(head, HG.nose, skin, 0, -0.012, -0.106); nose.rotation.x = -Math.PI / 2 - 0.25;
-  for (const x of [-0.037, 0.037]){ addMesh(head, HG.eyeW, smat('#F2EFEA', 0.4), x, 0.018, -0.086); addMesh(head, HG.pupil, smat('#2A2018', 0.3), x, 0.018, -0.1); addMesh(head, HG.brow, hair, x, 0.043, -0.096); }
-  addMesh(head, HG.mouth, smat('#7A3E35', 0.6), 0, -0.06, -0.088);
+  for (const x of [-0.037, 0.037]){
+    addMesh(head, HG.eyeW, smat('#F2EFEA', 0.4), x, 0.018, -0.086); addMesh(head, HG.pupil, smat('#2A2018', 0.3), x, 0.018, -0.1); addMesh(head, HG.brow, hair, x, 0.043, -0.096);
+    if (o.female) addMesh(head, HG.lash, dark, x, 0.031, -0.1);
+  }
+  const facial = o.facial || (o.beard ? 'full' : 'none'), style = o.hairStyle || (o.bald ? 'bald' : 'short'); let pony = null;
+  addMesh(head, HG.mouth, smat(o.female ? '#9A4A48' : '#7A3E35', 0.55), 0, -0.06, facial === 'full' ? -0.107 : facial === 'stubble' ? -0.103 : -0.088, o.female ? 1.05 : 1, o.female ? 1.6 : 1, 1);
   for (const x of [-0.098, 0.098]) addMesh(head, HG.ear, skin, x, -0.002, 0.006, 0.5, 1, 0.8);
-  if (!o.bald){ addMesh(head, HG.hairTop, hair, 0, 0.014, 0.01, 0.97, 1.08, 1.06); addMesh(head, HG.hairBack, hair, 0, -0.02, 0.034, 0.93, 0.86, 0.8); }
-  if (o.beard) addMesh(head, HG.beard, hair, 0, -0.05, -0.016, 1, 0.92, 1);
+  // hair: most of it shows below the helmet brim, at the back and sides
+  if (style !== 'bald'){
+    addMesh(head, HG.hairTop, hair, 0, 0.024, 0.01, 0.97, 1.08, 1.06); addMesh(head, HG.hairBack, hair, 0, -0.02, 0.034, 0.93, 0.86, 0.8);
+    for (const x of [-0.093, 0.093]) addMesh(head, HG.lock, hair, x, -0.008, -0.022, 0.55, 0.42, 0.6); // sideburns, so the hair shows from the front too
+  }
+  if (style === 'long'){
+    addMesh(head, HG.hairLong, hair, 0, -0.13, 0.06, 1.18, 1, 0.78);
+    for (const x of [-0.085, 0.085]) addMesh(head, HG.lock, hair, x, -0.075, 0.005, 1, 1, 0.9);
+  } else if (style === 'ponytail'){
+    const pv = new THREE.Group(); pv.position.set(0, -0.005, 0.105); pv.rotation.x = -0.45; head.add(pv);
+    addMesh(pv, HG.tie, hair, 0, 0, 0); addMesh(pv, HG.pony, hair, 0, -0.11, 0, 1, 1, 0.85);
+    pony = pv;
+  } else if (style === 'bun') addMesh(head, HG.bun, hair, 0, -0.025, 0.112);
+  else if (style === 'curly'){
+    // a ring of curls around the back half of the head, from ear to ear
+    for (let row = 0; row < 3; row++) for (let i = 0; i < 9; i++){
+      const a = Math.PI * (0.02 + i * 0.12) + (row % 2) * 0.17, r = 0.1 - row * 0.008;
+      addMesh(head, HG.curl, hair, Math.cos(a) * r, 0.0 - row * 0.042, Math.sin(a) * r * 1.05 + 0.02);
+    }
+  }
+  // facial hair
+  if (facial === 'stubble') addMesh(head, HG.beard, smat('#' + new THREE.Color(skinC).lerp(new THREE.Color(hairC), 0.45).getHexString(), 0.9), 0, -0.05, -0.016, 0.95, 0.85, 0.95);
+  if (facial === 'full') addMesh(head, HG.beard, hair, 0, -0.05, -0.016, 1, 0.92, 1);
+  if (facial === 'mustache' || facial === 'goatee' || facial === 'full') for (const s of [-1, 1]){ const st = addMesh(head, HG.stache, hair, s * 0.021, -0.041, facial === 'full' ? -0.106 : -0.098, 1, 1, 0.7); st.rotation.z = s * (Math.PI / 2 - 0.28); }
+  if (facial === 'goatee') addMesh(head, HG.chin, hair, 0, -0.118, -0.074, 0.9, 1.25, 0.7);
   if (o.glasses){ addMesh(head, HG.glasses, dark, 0, 0.02, -0.104); for (const x of [-0.037, 0.037]) addMesh(head, HG.lens, smat('#9CC3D8', 0.1, 0.2), x, 0.018, -0.106); }
   if (o.helmet){ addMesh(head, HG.dome, o.helmet, 0, 0.038, 0, 1, 0.95, 1.08); addMesh(head, HG.brim, o.helmet, 0, 0.038, -0.014, 1.05, 1, 1.2); addMesh(head, HG.ridge, o.helmet, 0, 0.165, 0); }
   const mk = (x) => {
@@ -1530,7 +1612,7 @@ function makeHuman(o){
     const handM = o.gloves || skin;
     addMesh(el, HG.palm, handM, 0, -0.29, 0, 0.75, 1.15, 0.55);
     const th = addMesh(el, HG.thumb, handM, -Math.sign(x) * 0.03, -0.27, -0.02); th.rotation.z = Math.sign(x) * 0.6;
-    const hp = new THREE.Group(); hp.position.set(Math.sign(x) * 0.095, -0.02, 0); body.add(hp);
+    const hp = new THREE.Group(); hp.position.set(Math.sign(x) * 0.095 * hx, -0.02, 0); body.add(hp);
     addMesh(hp, HG.thigh, pants, 0, -0.22, 0);
     const kn = new THREE.Group(); kn.position.y = -0.44; hp.add(kn);
     addMesh(kn, HG.knee, pants, 0, 0, 0);
@@ -1540,9 +1622,9 @@ function makeHuman(o){
     addMesh(an, HG.bootUp, boots, 0, 0.0, 0); addMesh(an, HG.foot, boots, 0, -0.05, -0.045); addMesh(an, HG.toe, boots, 0, -0.055, -0.13, 1, 0.68, 1); addMesh(an, HG.sole, soleM, 0, -0.088, -0.05);
     return { sh, el, hp, kn, an };
   };
-  const L = mk(-0.205), Rr = mk(0.205);
-  for (const grp of [body, head, L.sh, L.el, L.hp, L.kn, L.an, Rr.sh, Rr.el, Rr.hp, Rr.kn, Rr.an]) bake(grp, true);
-  return { root, body, head, shL:L.sh, elL:L.el, hipL:L.hp, knL:L.kn, anL:L.an, shR:Rr.sh, elR:Rr.el, hipR:Rr.hp, knR:Rr.kn, anR:Rr.an };
+  const L = mk(-0.205 * bx), Rr = mk(0.205 * bx);
+  for (const grp of [body, head, L.sh, L.el, L.hp, L.kn, L.an, Rr.sh, Rr.el, Rr.hp, Rr.kn, Rr.an, pony].filter(Boolean)) bake(grp, true);
+  return { root, body, head, pony, shL:L.sh, elL:L.el, hipL:L.hp, knL:L.kn, anL:L.an, shR:Rr.sh, elR:Rr.el, hipR:Rr.hp, knR:Rr.kn, anR:Rr.an };
 }
 const JOINTS = ['shL', 'elL', 'hipL', 'knL', 'anL', 'shR', 'elR', 'hipR', 'knR', 'anR'];
 function poseReset(f){ f.body.rotation.set(0, 0, 0); f.body.position.y = 0.97; f.head.rotation.set(0, 0, 0); for (const k of JOINTS) f[k].rotation.set(0, 0, 0); f.elL.rotation.x = f.elR.rotation.x = 0.15; f.shL.rotation.z = -0.06; f.shR.rotation.z = 0.06; }
@@ -1562,10 +1644,57 @@ function poseJump(f){ poseReset(f); f.body.rotation.x = -0.1; f.hipL.rotation.x 
 function poseSlide(f){ poseReset(f); f.body.rotation.x = 1.15; f.body.position.y = 0.44; f.hipL.rotation.x = f.hipR.rotation.x = 1.45; f.knL.rotation.x = f.knR.rotation.x = -0.15; f.anL.rotation.x = f.anR.rotation.x = 0.3; f.shL.rotation.x = f.shR.rotation.x = -0.4; f.elL.rotation.x = f.elR.rotation.x = 0.5; f.head.rotation.x = -0.6; }
 function poseReady(f){ poseReset(f); f.body.rotation.x = -0.35; f.body.position.y = 0.88; f.hipL.rotation.x = 0.6; f.knL.rotation.x = -0.6; f.hipR.rotation.x = -0.35; f.knR.rotation.x = -0.5; feet(f); f.shL.rotation.x = -0.6; f.shR.rotation.x = 0.7; f.elL.rotation.x = f.elR.rotation.x = 1.3; f.head.rotation.x = 0.3; }
 function poseSit(f){ poseReset(f); f.body.position.y = 0.56; f.hipL.rotation.x = f.hipR.rotation.x = 1.5; f.knL.rotation.x = f.knR.rotation.x = -1.5; f.shR.rotation.x = 0.55; f.elR.rotation.x = 1.5; f.shL.rotation.x = 0.25; f.elL.rotation.x = 0.7; f.head.rotation.x = -0.08; }
-const player = makeHuman({ skin:'#C99A76', hair:'#3A2A1C', shirt:smat('#3B4148', 0.85), pants:smat('#2E3747', 0.9), vest:M.green, stripe:M.yellowGlow, helmet:smat('#E2AB22', 0.32, 0.05), gloves:smat('#C7B48A', 0.8), kneepads:true, backText:'VERNEOMBUD' });
-const playerMats = []; let playerRainbow = false;
-player.root.traverse(m => { if (m.isMesh){ m.material = m.material.clone(); if (m.material.emissive){ m.material.userData.e0 = m.material.emissive.clone(); m.material.userData.i0 = m.material.emissiveIntensity; playerMats.push(m.material); } } });
-scene.add(player.root);
+/* ---------- The player's character: made in the creator and saved on this device ---------- */
+const CHAR_OPTS = {
+  gender:{ label:'Kjønn', type:'chip', opts:[['male', 'Mann'], ['female', 'Kvinne']] },
+  skin:{ label:'Hudfarge', type:'swatch', opts:[['#F0CDB2', 'Veldig lys'], ['#E8BE9C', 'Lys'], ['#D9AC88', 'Lys middels'], ['#C99A76', 'Middels'], ['#B9825C', 'Gyllen'], ['#A8714C', 'Brun'], ['#7A4E33', 'Mørk'], ['#55351F', 'Veldig mørk']] },
+  hairStyle:{ label:'Hår', type:'chip', opts:[['short', 'Kort'], ['long', 'Langt'], ['ponytail', 'Hestehale'], ['bun', 'Knute'], ['curly', 'Krøller'], ['bald', 'Skallet']] },
+  hair:{ label:'Hårfarge', type:'swatch', opts:[['#141414', 'Svart'], ['#3A2A1C', 'Mørkebrun'], ['#6B4423', 'Brun'], ['#9C7A4A', 'Mørk blond'], ['#D8B56A', 'Blond'], ['#A0482A', 'Rød'], ['#9A9A96', 'Grå'], ['#E4E2DC', 'Hvit'], ['#D65A9A', 'Rosa'], ['#3E6FD8', 'Blå']] },
+  facial:{ label:'Skjegg', type:'chip', opts:[['none', 'Ingen'], ['stubble', 'Skjeggstubb'], ['mustache', 'Bart'], ['goatee', 'Fippskjegg'], ['full', 'Helskjegg']] },
+  helmet:{ label:'Hjelm', type:'swatch', opts:[['#F2F2EE', 'Hvit'], ['#E2AB22', 'Gul'], ['#E8701E', 'Oransje'], ['#C8281C', 'Rød'], ['#2F6FB5', 'Blå'], ['#2E8B57', 'Grønn'], ['#2A2D31', 'Svart']] },
+  vest:{ label:'Vest', type:'swatch', opts:[['green', 'Grønn'], ['#D4E020', 'Gul'], ['#F07A12', 'Oransje'], ['#D93B2B', 'Rød'], ['#2F6FB5', 'Blå'], ['#E35A9C', 'Rosa']] }
+};
+const CHAR_DEFAULT = { gender:'male', skin:'#C99A76', hairStyle:'short', hair:'#3A2A1C', facial:'none', helmet:'#E2AB22', vest:'green' };
+// A stored character is only used if every field is still one of the options.
+function validChar(c){
+  if (!c || typeof c !== 'object') return null;
+  const out = {};
+  for (const k in CHAR_OPTS){ if (!CHAR_OPTS[k].opts.some(([v]) => v === c[k])) return null; out[k] = c[k]; }
+  return out;
+}
+let charSaved = validChar(store.get('vr3d:char', null));
+let char = Object.assign({}, charSaved || CHAR_DEFAULT);
+const sameChar = (a, b) => Object.keys(CHAR_OPTS).every(k => a[k] === b[k]);
+function randomChar(){
+  const female = Math.random() < 0.5, opt = k => pick(CHAR_OPTS[k].opts)[0];
+  return {
+    gender:female ? 'female' : 'male', skin:opt('skin'),
+    hairStyle:pickWeighted(female ? [['long', 3], ['ponytail', 3], ['bun', 2], ['curly', 1.5], ['short', 1.2], ['bald', 0.2]] : [['short', 4], ['bald', 1.4], ['curly', 1.4], ['long', 0.8], ['ponytail', 0.5], ['bun', 0.5]]),
+    hair:pickWeighted([['#141414', 3], ['#3A2A1C', 3], ['#6B4423', 3], ['#9C7A4A', 2], ['#D8B56A', 2], ['#A0482A', 1.2], ['#9A9A96', 1], ['#E4E2DC', 0.4], ['#D65A9A', 0.4], ['#3E6FD8', 0.4]]),
+    facial:female ? 'none' : pickWeighted([['none', 3], ['stubble', 2], ['mustache', 1], ['goatee', 1], ['full', 1.6]]),
+    helmet:opt('helmet'), vest:pickWeighted([['green', 3], ['#D4E020', 1], ['#F07A12', 1], ['#D93B2B', 1], ['#2F6FB5', 1], ['#E35A9C', 1]])
+  };
+}
+const stripeSilver = mat('#DADDE0', { roughness:0.3, metalness:0.5, emissive:new THREE.Color('#FFFFFF'), emissiveIntensity:0.06 });
+const vestMats = {};
+// Hi-vis fabric glows a little, like fluorescent cloth does in daylight.
+const vestMat = hex => vestMats[hex] || (vestMats[hex] = mat(hex, { roughness:0.65, emissive:new THREE.Color(hex), emissiveIntensity:0.12 }));
+function charToHuman(c){
+  const green = c.vest === 'green';
+  return { female:c.gender === 'female', skin:c.skin, hair:c.hair, hairStyle:c.hairStyle, facial:c.facial, shirt:smat('#3B4148', 0.85), pants:smat('#2E3747', 0.9),
+    vest:green ? M.green : vestMat(c.vest), stripe:green ? M.yellowGlow : stripeSilver, helmet:smat(c.helmet, 0.32, 0.05), gloves:smat('#C7B48A', 0.8), kneepads:true, backText:'VERNEOMBUD' };
+}
+let player = null, playerMats = [], playerRainbow = false;
+// (Re)build the player from `char`, keeping where it stands. Each mesh gets its own material so super speed can tint them.
+function buildPlayer(){
+  const keep = player && { p:player.root.position.clone(), r:player.root.rotation.clone() };
+  if (player){ scene.remove(player.root); disposeBaked(player.root); player.root.traverse(m => { if (m.isMesh) m.material.dispose(); }); }
+  player = makeHuman(charToHuman(char)); playerMats = []; playerRainbow = false;
+  player.root.traverse(m => { if (m.isMesh){ m.material = m.material.clone(); if (m.material.emissive){ m.material.userData.e0 = m.material.emissive.clone(); m.material.userData.i0 = m.material.emissiveIntensity; playerMats.push(m.material); } } });
+  if (keep){ player.root.position.copy(keep.p); player.root.rotation.copy(keep.r); }
+  scene.add(player.root);
+}
+buildPlayer();
 const tagGeo = box(0.16, 0.13, 0.03), tags = [];
 
 
@@ -2244,12 +2373,28 @@ function updateSpeedLines(dt, k){
 }
 
 const camPos = new THREE.Vector3(0, 2.75, 5.3), camLook = new THREE.Vector3(0, 1.15, -12);
+// creator view: crBlend eases the camera between the running view and a front-on portrait of the player
+let crBlend = 0, camFov = 60, stageW = 1, stageH = 1;
+const crFx = { hop:0, spin:0, drag:null };
 function render(time, dt){
   // player pose
   const pr = player.root;
   pr.position.set(g.x, g.y, 0);
   const sliding = g.slideT > 0 && g.onGround;
-  if (state === 'playing' || state === 'countdown' || state === 'start' || state === 'paused' || state === 'loading'){
+  pr.rotation.y = 0;
+  if (state === 'create'){
+    // idle on a turntable: breathing, glancing around, a little hop and cheer when something changes
+    poseReset(player); pr.rotation.z = 0;
+    const br = Math.sin(time * 2.2);
+    player.body.position.y = 0.97 + br * 0.006; player.shL.rotation.z = -0.1 - br * 0.02; player.shR.rotation.z = 0.1 + br * 0.02;
+    player.head.rotation.y = reduceMotion ? 0 : Math.sin(time * 0.7) * 0.18;
+    if (crFx.hop > 0){
+      crFx.hop = Math.max(0, crFx.hop - dt); const k = Math.sin((1 - crFx.hop / 0.5) * Math.PI);
+      if (!reduceMotion) pr.position.y = k * 0.22;
+      player.shL.rotation.z = -0.1 - k * 2.4; player.shR.rotation.z = 0.1 + k * 2.4; player.elL.rotation.x = player.elR.rotation.x = 0.15 + k * 0.4;
+    }
+    pr.rotation.y = Math.PI + crFx.spin + (reduceMotion || crFx.drag ? 0 : Math.sin(time * 0.45) * 0.45);
+  } else if (state === 'playing' || state === 'countdown' || state === 'start' || state === 'paused' || state === 'loading'){
     if (state === 'start') poseReset(player);
     else if (state === 'countdown') poseReady(player);
     else if (sliding) poseSlide(player);
@@ -2257,6 +2402,13 @@ function render(time, dt){
     else if (state !== 'loading' && state !== 'paused'){ poseRun(player, g.phase, 0.95); if (g.stumble > 0) player.body.rotation.x = -0.55; }
     pr.rotation.z = (g.x - laneX(g.lane)) * 0.08;
   } else if (g && g.caught){ poseReset(player); player.body.rotation.x = 0.08; }
+  if (player.pony){
+    // the ponytail swings with the stride and flies up in jumps
+    const run = state === 'playing' && g.onGround && g.slideT <= 0, air = (state === 'playing' || state === 'ending') && !g.onGround;
+    const sw = reduceMotion ? 0 : Math.sin(g.phase);
+    player.pony.rotation.x = -0.45 - (run ? Math.abs(sw) * 0.35 + 0.25 : 0) - (air ? 0.7 : 0);
+    player.pony.rotation.z = run ? sw * 0.28 : Math.sin(time * 1.3) * 0.05;
+  }
   // avvik tags dangling behind
   for (let i = 0; i < tags.length; i++){
     const t = tags[i], on = g && i < g.tail.length;
@@ -2310,14 +2462,22 @@ function render(time, dt){
   let sh = g.shake * 1.2 + (noiseOn ? 0.09 : 0); if (reduceMotion) sh = 0;
   let cy = 2.75 + g.y * 0.3, cz = 5.3, lookY = 1.15 + g.y * 0.35;
   if (g.fell){ cy = 3.6; lookY = Math.max(-2, g.y); }
+  crBlend += ((state === 'create' ? 1 : 0) - crBlend) * Math.min(1, dt * 3.5);
+  const cb = crBlend * crBlend * (3 - 2 * crBlend), portrait = stageW < 640;
   camPos.set(g.x * 0.6, cy, cz);
   if (state === 'start' && !reduceMotion) camPos.add(_v3.set(Math.sin(time * 0.35) * 0.9, Math.sin(time * 0.23) * 0.15, 0));
+  if (cb > 0.0005) camPos.lerp(_v3.set(0, portrait ? 1.4 : 1.5, portrait ? 4.6 : 2.7), cb);
   camera.position.lerp(camPos, Math.min(1, dt * 8)); skyMesh.position.copy(camera.position);
   camera.position.x += rand(-sh, sh); camera.position.y += rand(-sh, sh) * 0.7;
-  camLook.set(g.x * 0.75, lookY, -12); camera.lookAt(camLook);
-  if (!reduceMotion) camera.rotateZ(clamp((g.x - laneX(g.lane)) * 0.035, -0.06, 0.06));
-  const tfov = sup ? 74 : 60; g.fov += (tfov - g.fov) * Math.min(1, dt * 4);
-  if (Math.abs(camera.fov - g.fov) > 0.05){ camera.fov = g.fov; camera.updateProjectionMatrix(); }
+  camLook.set(g.x * 0.75, lookY, -12);
+  if (cb > 0.0005) camLook.lerp(_v3.set(0, portrait ? 1.2 : 1.27, 0), cb);
+  camera.lookAt(camLook);
+  if (!reduceMotion) camera.rotateZ(clamp((g.x - laneX(g.lane)) * 0.035, -0.06, 0.06) * (1 - cb));
+  const tfov = (sup ? 74 : 60) * (1 - cb) + 38 * cb; camFov += (tfov - camFov) * Math.min(1, dt * 4);
+  if (Math.abs(camera.fov - camFov) > 0.05){ camera.fov = camFov; camera.updateProjectionMatrix(); }
+  // shift the frame so the figure sits beside the creator panel (left of it on wide screens, above it on narrow ones)
+  if (cb > 0.001) camera.setViewOffset(stageW, stageH, portrait ? 0 : 0.21 * stageW * cb, portrait ? 0.21 * stageH * cb : 0, stageW, stageH);
+  else if (camera.view && camera.view.enabled) camera.clearViewOffset();
   // effects
   const pxScale = renderer.getDrawingBufferSize(_v2).y / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2));
   FX.dust.mat.uniforms.uScale.value = FX.spark.mat.uniforms.uScale.value = pxScale;
@@ -2360,6 +2520,7 @@ function resize(){
   const r = stage.getBoundingClientRect();
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, Q().dpr));
   renderer.setSize(Math.max(1, r.width), Math.max(1, r.height), false);
+  stageW = Math.max(1, r.width); stageH = Math.max(1, r.height);
   camera.aspect = r.width / Math.max(1, r.height); camera.updateProjectionMatrix();
   post.resize();
 }
@@ -2439,11 +2600,13 @@ async function showGameOver(){
   if (db && m > 0){ nameInput.focus({ preventScroll:true }); nameInput.select(); } else $('againBtn').focus({ preventScroll:true });
   if (!db) renderLocalBoard(); else if (typeof loadBoard === 'function') loadBoard();
 }
-$('startBtn').addEventListener('click', startGame);
-const startOv = $('startOv'), playBtn = $('playBtn');
+$('startBtn').addEventListener('click', () => requestStart());
+const startOv = $('startOv'), playBtn = $('playBtn'), creatorEl = $('creator'), crGroups = $('crGroups'), charBtn = $('charBtn'), charBtn2 = $('charBtn2');
 let uiState = '';
 function syncStartUi(){
   startOv.hidden = !(state === 'start' && startModal.hidden);
+  creatorEl.hidden = state !== 'create'; stage.classList.toggle('creating', state === 'create');
+  charBtn.textContent = charSaved ? 'Endre figur' : 'Lag figur';
   playBtn.textContent = (state === 'playing' || state === 'paused' || state === 'countdown' || state === 'loading') ? 'Start på nytt' : 'Start spillet';
   uiState = state + (startModal.hidden ? '' : '+rules');
 }
@@ -2452,14 +2615,81 @@ function closeRules(){ startModal.hidden = true; syncStartUi(); if (state === 's
 $('rulesClose').addEventListener('click', closeRules);
 $('rulesBtn').addEventListener('click', openRules);
 $('rulesBtn2').addEventListener('click', openRules);
-$('startBtn2').addEventListener('click', startGame);
-playBtn.addEventListener('click', () => { playBtn.blur(); startGame(); });
+$('startBtn2').addEventListener('click', () => requestStart());
+playBtn.addEventListener('click', () => { playBtn.blur(); requestStart(); });
 startModal.addEventListener('click', e => { if (e.target === startModal) closeRules(); });
 $('againBtn').addEventListener('click', () => { if (performance.now() - overAt > 600) startGame(); });
 
+/* ---------- Character creator ---------- */
+// The first start goes through the creator; after that the saved figure is used straight away.
+function requestStart(){
+  if (state === 'create'){ saveAndStart(); return; }
+  if (!charSaved && state !== 'playing' && state !== 'paused') openCreator();
+  else startGame();
+}
+let crBackup = null;
+for (const [key, def] of Object.entries(CHAR_OPTS)){
+  const fs = document.createElement('fieldset'); fs.className = 'cr-group';
+  const lg = document.createElement('legend'); lg.textContent = def.label;
+  const row = document.createElement('div'); row.className = 'cr-opts';
+  for (const [v, label] of def.opts){
+    const lab = document.createElement('label'); lab.className = 'cr-opt ' + (def.type === 'swatch' ? 'cr-sw' : 'cr-chip');
+    const inp = document.createElement('input'); inp.type = 'radio'; inp.name = 'cr-' + key; inp.value = v;
+    const vis = document.createElement('span');
+    if (def.type === 'swatch'){ vis.className = 'dot'; vis.style.setProperty('--c', v === 'green' ? 'var(--green)' : v); lab.title = label; inp.setAttribute('aria-label', label); }
+    else vis.textContent = label;
+    lab.append(inp, vis); row.appendChild(lab);
+  }
+  fs.append(lg, row); crGroups.appendChild(fs);
+}
+function syncCreatorUi(){ for (const k in CHAR_OPTS) for (const inp of creatorEl.querySelectorAll(`input[name="cr-${k}"]`)) inp.checked = inp.value === char[k]; }
+function charChanged(){
+  buildPlayer(); crFx.hop = 0.5;
+  sparkle(0, 1.95, 0, 16, fxCol(P.yellow, 3), 2.2); sfxPickup();
+}
+function openCreator(){
+  if (state === 'playing' || state === 'paused') return;
+  ensureAudio();
+  startModal.hidden = true; overModal.hidden = true;
+  crBackup = Object.assign({}, char);
+  newGame(); state = 'create'; crFx.spin = 0;
+  $('crCancel').hidden = !charSaved;
+  syncCreatorUi(); syncStartUi();
+  crGroups.scrollTop = 0;
+  const first = creatorEl.querySelector('input:checked'); if (first) first.focus({ preventScroll:true });
+}
+function closeCreator(){
+  state = 'start'; syncStartUi();
+  $('startBtn2').focus({ preventScroll:true });
+}
+function cancelCreator(){
+  if (crBackup && !sameChar(crBackup, char)){ char = crBackup; buildPlayer(); }
+  closeCreator();
+}
+function saveAndStart(){
+  charSaved = Object.assign({}, char); store.set('vr3d:char', charSaved);
+  startGame();
+}
+creatorEl.addEventListener('change', e => {
+  const t = e.target;
+  if (!t.name || !t.name.startsWith('cr-')) return;
+  char[t.name.slice(3)] = t.value; charChanged();
+});
+creatorEl.addEventListener('submit', e => { e.preventDefault(); saveAndStart(); });
+$('crRandom').addEventListener('click', () => { let c; do { c = randomChar(); } while (sameChar(c, char)); char = c; syncCreatorUi(); charChanged(); });
+$('crNew').addEventListener('click', () => { char = Object.assign({}, CHAR_DEFAULT); syncCreatorUi(); charChanged(); });
+$('crCancel').addEventListener('click', cancelCreator);
+charBtn.addEventListener('click', openCreator);
+charBtn2.addEventListener('click', openCreator);
+// drag the figure to turn it
+canvas.addEventListener('pointerdown', e => { if (state === 'create'){ crFx.drag = { x:e.clientX }; canvas.setPointerCapture && canvas.setPointerCapture(e.pointerId); } });
+window.addEventListener('pointermove', e => { if (crFx.drag && state === 'create'){ crFx.spin += (e.clientX - crFx.drag.x) * 0.012; crFx.drag.x = e.clientX; } });
+for (const ev of ['pointerup', 'pointercancel']) window.addEventListener(ev, () => { crFx.drag = null; });
+
 window.addEventListener('keydown', e => {
-  if (e.target && e.target.tagName === 'INPUT') return;
   if (e.code === 'Escape' && !startModal.hidden){ e.preventDefault(); closeRules(); return; }
+  if (e.code === 'Escape' && state === 'create'){ e.preventDefault(); cancelCreator(); return; }
+  if (e.target && e.target.tagName === 'INPUT') return;
   if (e.code === 'KeyF' && !e.repeat){ e.preventDefault(); toggleFs(); return; }
   if (e.code === 'Escape' && fsActive() && state !== 'playing' && state !== 'paused'){ exitFs(); return; }
   if (e.code === 'KeyP' || e.code === 'Escape'){
@@ -2480,7 +2710,7 @@ window.addEventListener('keydown', e => {
   if (state === 'paused'){ e.preventDefault(); resume(); return; }
   if (state === 'countdown' || state === 'loading' || state === 'ending'){ e.preventDefault(); return; }
   if (e.target && e.target.tagName === 'BUTTON') return;
-  if ((k === 'Space' || k === 'Enter') && (state === 'start' || (state === 'over' && performance.now() - overAt > 700))){ e.preventDefault(); startGame(); }
+  if ((k === 'Space' || k === 'Enter') && (state === 'start' || (state === 'over' && performance.now() - overAt > 700))){ e.preventDefault(); requestStart(); }
 });
 let touch = null;
 canvas.addEventListener('pointerdown', e => { ensureAudio(); touch = { x:e.clientX, y:e.clientY, t:performance.now() }; if (state === 'paused') resume(); });
