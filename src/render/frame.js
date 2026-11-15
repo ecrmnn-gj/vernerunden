@@ -21,7 +21,7 @@ import { superOn } from '../game/outcomes.js';
 import { fogTarget } from '../game/events.js';
 import { stageH, stageW } from '../ui/layout.js';
 
-export const camPos = new THREE.Vector3(0, 2.75, 5.3), camLook = new THREE.Vector3(0, 1.15, -12);
+export const camPos = new THREE.Vector3(0, 3.25, 6.6), camLook = new THREE.Vector3(0, 1.15, -12);
 // creator view: crBlend eases the camera between the running view and a front-on portrait of the player
 let crBlend = 0, camFov = 60;
 export const crFx = { hop:0, spin:0, drag:null };
@@ -109,7 +109,7 @@ export function render(time, dt){
   // camera
   const noiseOn = g.ev && g.ev.type === 'noise' && g.ev.warn <= 0 && g.ore <= 0;
   let sh = g.shake * 1.2 + (noiseOn ? 0.09 : 0); if (reduceMotion) sh = 0;
-  let cy = 2.75 + g.y * 0.3, cz = 5.3, lookY = 1.15 + g.y * 0.35;
+  let cy = 3.25 + g.y * 0.3, cz = 6.6, lookY = 1.15 + g.y * 0.35;
   if (g.fell){ cy = 3.6; lookY = Math.max(-2, g.y); }
   crBlend += ((state === 'create' ? 1 : 0) - crBlend) * Math.min(1, dt * 3.5);
   const cb = crBlend * crBlend * (3 - 2 * crBlend), portrait = stageW < 640;

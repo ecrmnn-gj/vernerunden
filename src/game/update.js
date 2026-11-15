@@ -136,7 +136,7 @@ export function update(dt){
   for (let i = g.obstacles.length - 1; i >= 0; i--){ const o = g.obstacles[i]; if (o.z - o.len / 2 > 12 || (o.fly && o.fly.y < -6)){ scene.remove(o.mesh); disposeBaked(o.mesh); g.obstacles.splice(i, 1); } }
 
   // dust clouds drift with the site
-  for (let i = g.dust.length - 1; i >= 0; i--){ const d = g.dust[i]; d.z += dz; d.x += d.vx * dt; d.y += d.vy * dt; d.sp.material.rotation += dt * 0.25; if (d.z > 6){ scene.remove(d.sp); d.sp.material.dispose(); g.dust.splice(i, 1); } }
+  for (let i = g.dust.length - 1; i >= 0; i--){ const d = g.dust[i]; d.z += dz; d.x += d.vx * dt; d.y += d.vy * dt; d.sp.material.rotation += dt * 0.25; if (d.z > 8){ scene.remove(d.sp); d.sp.material.dispose(); g.dust.splice(i, 1); } }
   // pickups
   for (let i = g.pickups.length - 1; i >= 0; i--){
     const p = g.pickups[i], pz0 = p.z; p.z += dz;
