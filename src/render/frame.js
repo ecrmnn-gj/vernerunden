@@ -63,6 +63,8 @@ export function render(time, dt){
     pr.rotation.z = (g.x - laneX(g.lane)) * 0.08;
   } else if (g && g.caught){ poseReset(player); player.body.rotation.x = 0.08; }
   if (dbg.pose) dbg.pose(player, time);
+  // the generated figure spreads the pose over its extra bones (spine, clavicles, neck, half joints)
+  if (player.update) player.update(dt, time);
   if (player.pony){
     // the ponytail swings with the stride and flies up in jumps
     const run = state === 'playing' && g.onGround && g.slideT <= 0, air = (state === 'playing' || state === 'ending') && !g.onGround;
