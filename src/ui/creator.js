@@ -4,7 +4,7 @@ import { P } from '../core/palette.js';
 import { state, setState } from '../game/state.js';
 import { ensureAudio, stopMusic } from '../audio/audio.js';
 import { sfxPickup } from '../audio/sfx.js';
-import { CHAR_OPTS, CHAR_TABS, HEAD_TABS, CHAR_DEFAULT, charSaved, char, setChar, saveChar, sameChar, randomChar, buildPlayer, setHelmet } from '../characters/player.js';
+import { CHAR_OPTS, CHAR_TABS, HEAD_TABS, CHAR_DEFAULT, charSaved, char, setChar, saveChar, sameChar, randomChar, isShapeKey, buildPlayer, applyCharColours, setHelmet } from '../characters/player.js';
 import { fxCol, sparkle } from '../render/particles.js';
 import { newGame } from '../game/run.js';
 import { overModal, startModal, startGame } from '../game/flow.js';
@@ -61,8 +61,10 @@ export function selectTab(id, user){
 }
 selectTab('body');
 export function syncCreatorUi(){ for (const k in CHAR_OPTS) for (const inp of creatorEl.querySelectorAll(`input[name="cr-${k}"]`)) inp.checked = inp.value === char[k]; }
-function charChanged(){
-  buildPlayer(); crFx.hop = 0.5;
+// A colour change only recolours; a shape change (or several options at once) rebuilds the figure.
+function charChanged(key){
+  if (key && !isShapeKey(key)) applyCharColours(); else buildPlayer();
+  crFx.hop = 0.5;
   sparkle(0, 1.95, 0, 16, fxCol(P.yellow, 3), 2.2); sfxPickup();
 }
 // A shift in progress is abandoned, as a restart always did.
@@ -96,7 +98,8 @@ function saveAndStart(){
 creatorEl.addEventListener('change', e => {
   const t = e.target;
   if (!t.name || !t.name.startsWith('cr-')) return;
-  char[t.name.slice(3)] = t.value; charChanged();
+  const key = t.name.slice(3);
+  char[key] = t.value; charChanged(key);
 });
 creatorEl.addEventListener('submit', e => { e.preventDefault(); saveAndStart(); });
 $('crRandom').addEventListener('click', () => { let c; do { c = randomChar(); } while (sameChar(c, char)); setChar(c); syncCreatorUi(); charChanged(); });

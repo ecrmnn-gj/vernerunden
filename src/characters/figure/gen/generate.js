@@ -10,13 +10,13 @@ import { inheritWeights, smoothWeights, packWeights } from './weights.js';
 import { rigSpec, chains, BONES } from '../rig.js';
 import { bodyScene, bodyRegions } from './body.js';
 import { handScene, handRegions } from './hands.js';
-import { headScene } from './head.js';
+import { headScene, headRegions } from './head.js';
 import { bootScene, bootRegions } from './boots.js';
 import { partKey } from '../keys.js';
 export { partKey };
 
 // Bump whenever any generated output changes, so cached parts from older code are not reused.
-export const GEN_VERSION = 1;
+export const GEN_VERSION = 2;
 
 // Grid cell size (m) and triangle budget per part and quality tier.
 export const TIERS = {
@@ -38,14 +38,17 @@ const now = () => (typeof performance !== 'undefined' ? performance.now() : Date
 async function finish(kind, scene, m, regions, budget, bones, wopts){
   // Region distances only matter near zero, where the shader draws a line; clamped, they are constant elsewhere
   // and don't hold the simplifier back.
-  const reg = regions(m.positions); for (let i = 0; i < reg.length; i++) reg[i] = reg[i] < -REG_CLAMP ? -REG_CLAMP : reg[i] > REG_CLAMP ? REG_CLAMP : reg[i];
-  let mesh = { positions:m.positions, normals:m.normals, index:m.index, flags:m.flags, attrs:{ region:[reg, 4] } };
+  let r = regions(m.positions);
+  if (r instanceof Float32Array) r = { region:r };
+  const attrs = {};
+  for (const [name, arr] of Object.entries(r)){ for (let i = 0; i < arr.length; i++) arr[i] = arr[i] < -REG_CLAMP ? -REG_CLAMP : arr[i] > REG_CLAMP ? REG_CLAMP : arr[i]; attrs[name] = [arr, 4]; }
+  let mesh = { positions:m.positions, normals:m.normals, index:m.index, flags:m.flags, attrs };
   // the budget decides how far to simplify; the error cap only stops it from ruining the shape
-  mesh = await simplify(mesh, budget, { weighted:{ normal:0.3, region:0.5 }, maxError:0.015 });
+  mesh = await simplify(mesh, budget, { weighted:{ normal:0.3, region:0.5, region2:0.5 }, maxError:0.015 });
   let lists = inheritWeights(scene, mesh.positions, wopts);
   if (wopts.smooth) lists = smoothWeights(lists, mesh.index, wopts.smooth);
   const { skinIndex, skinWeight } = packWeights(lists, bones);
-  return { positions:mesh.positions, normals:mesh.normals, index:mesh.index, region:mesh.attrs.region[0], skinIndex, skinWeight, bones, lists };
+  return { positions:mesh.positions, normals:mesh.normals, index:mesh.index, region:mesh.attrs.region[0], region2:mesh.attrs.region2 ? mesh.attrs.region2[0] : null, skinIndex, skinWeight, bones, lists };
 }
 
 export async function generatePart(kind, o, tier = 'medium'){
@@ -60,8 +63,8 @@ export async function generatePart(kind, o, tier = 'medium'){
     const left = await finish(kind, scene, x.m, p => handRegions(o, spec, p, 'L'), budget / 2, BONE_NAMES, { chains:chains(spec), smooth:1 });
     rec = mergeMirrored(left); rec.anchor = null; rec.ms = x.ms; rec.cells = x.cells;
   } else if (kind === 'head'){
-    const { scene } = headScene(o), x = extract(scene, h);
-    rec = await finish(kind, scene, x.m, p => new Float32Array(p.length / 3 * 4).fill(1), budget, ['chest', 'neckB', 'headB'], {});
+    const { scene, tags, landmarks } = headScene(o), x = extract(scene, h);
+    rec = await finish(kind, scene, x.m, p => headRegions(p, tags, landmarks), budget, ['chest', 'neckB', 'headB'], {});
     rec.anchor = 'headB'; rec.ms = x.ms; rec.cells = x.cells;
   } else if (kind === 'boot'){
     const { scene, sole } = bootScene(), x = extract(scene, h);

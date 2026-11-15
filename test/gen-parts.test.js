@@ -35,6 +35,20 @@ describe('generated parts are closed, manifold and validly skinned', () => {
   it('boot', async () => expectSound(await generatePart('boot', BASE), 1), 30000);
 });
 
+describe('the face', () => {
+  it('every eye sits in its socket: its front at the face surface, the head solid behind it', async () => {
+    const { headScene } = await import('../src/characters/figure/gen/head.js');
+    for (const o of combos([['gender', ['male', 'female']], ['face', ['oval', 'round', 'square', 'long']]])){
+      const { scene, landmarks:L } = headScene(o);
+      for (const c of [L.eye.L, L.eye.R]){
+        const front = scene.dist(c[0], c[1], c[2] - L.eye.r);
+        expect(Math.abs(front), `${o.gender} ${o.face}: eye front ${front}`).toBeLessThan(0.004);
+        expect(scene.dist(c[0], c[1], c[2] + L.eye.r + 0.004), `${o.gender} ${o.face}: behind the eye`).toBeLessThan(0);
+      }
+    }
+  });
+});
+
 describe('budgets and determinism', () => {
   // the whole figure, per quality tier
   const LIMIT = { high:52000, medium:40000, low:26000 };
@@ -61,6 +75,7 @@ describe('the skinned figure deforms without collapsing', () => {
     // poses.js pulls in DOM helpers at import; a stub is enough for the pose maths
     globalThis.document ??= { getElementById:() => null, documentElement:{} };
     globalThis.matchMedia ??= () => ({ matches:false });
+    globalThis.getComputedStyle ??= () => ({ getPropertyValue:() => '' });
     THREE = await import('three');
     ({ assembleFigure } = await import('../src/characters/figure/assemble.js'));
     poses = await import('../src/characters/poses.js');

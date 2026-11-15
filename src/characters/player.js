@@ -57,6 +57,10 @@ export function buildPlayer(){
 
 // The generated figure. Its parts come from a worker, so until the first one is ready the player is an invisible
 // stub with the same joints: everything that poses or moves the player works from the first frame.
+// Colour-only changes (and theme changes, for the Grønn Jobb green) recolour the generated figure in place; the
+// legacy figure has to be rebuilt.
+export function applyCharColours(){ if (NEW_FIG && player && player.setColours) player.setColours(char); else buildPlayer(); }
+export function refreshPlayerTheme(){ applyCharColours(); }
 function stubRig(){
   const root = new THREE.Group(), f = { root, pony:null, ready:false };
   f.body = new THREE.Object3D(); root.add(f.body); f.head = new THREE.Object3D(); f.body.add(f.head);
@@ -92,6 +96,7 @@ function disposeFigure(f){
   for (const m of f.meshes) m.geometry.dispose();
   for (const m of f.mats) m.dispose();
   if (f.helmet) f.helmet.traverse(o => { if (o.geometry) o.geometry.dispose(); });
+  if (f.eyeGeos) for (const g of f.eyeGeos) g.dispose();
 }
 buildPlayer();
 export const tagGeo = box(0.16, 0.13, 0.03), tags = [];

@@ -106,6 +106,16 @@ describe('surface extraction', () => {
     expect(eulerCharacteristic(m.index)).toBe(2);
   });
 
+  it('stays manifold where two surfaces nearly touch inside one cell', () => {
+    // gaps smaller than a cell, at many offsets: plain Surface Nets would pinch these into non-manifold edges
+    for (let i = 0; i < 12; i++){
+      const s = new Scene(), gap = 0.001 + i * 0.0006;
+      s.add(new Sphere([0, 0, 0], 0.05)); s.add(new Sphere([0.1 + gap + i * 0.0003, 0.0007 * i, 0.0011 * i], 0.05));
+      const m = extract(s, 0.006);
+      expectClosed(m);
+    }
+  });
+
   it('a shape cut by the grid boundary is capped, not left open', () => {
     const s = new Scene(); s.add(new Capsule([0, -1, 0], [0, 1, 0], 0.1));
     const m = surfaceNets(sampleGrid(s, [-0.2, -0.3, -0.2, 0.2, 0.3, 0.2], 0.01));

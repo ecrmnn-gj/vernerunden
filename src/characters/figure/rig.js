@@ -41,7 +41,7 @@ export const BIND_ROT = { shL:[0, 0, -0.75], shR:[0, 0, 0.75], elL:[0.15, 0, 0],
 function restPositions(o){
   const { bx, hx } = widths(o);
   const P = {
-    body:[0, BODY_Y, 0], pelvis:[0, 0, 0], spine:[0, 0.12, 0], chest:[0, 0.34, 0], neckB:[0, 0.24, 0], headB:[0, 0.10, 0.005],
+    body:[0, BODY_Y, 0], pelvis:[0, 0, 0], spine:[0, 0.12, 0], chest:[0, 0.34, 0], neckB:[0, 0.24, 0], headB:[0, 0.075, 0.005],
     pony0:[0, 0, 0.1], pony1:[0, -0.08, 0], pony2:[0, -0.08, 0], braidL0:[-0.06, -0.04, 0.07], braidL1:[0, -0.09, 0], braidL2:[0, -0.09, 0],
     braidR0:[0.06, -0.04, 0.07], braidR1:[0, -0.09, 0], braidR2:[0, -0.09, 0], hairBack0:[0, 0, 0.08], hairBack1:[0, -0.08, 0], hairBack2:[0, -0.08, 0]
   };

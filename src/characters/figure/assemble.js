@@ -3,7 +3,9 @@
 import * as THREE from 'three';
 import { BONES, BONE_INDEX, BIND_ROT, rigSpec } from './rig.js';
 import { refine } from './refine.js';
-import { makeFigureUniforms, makePartMaterial } from './materials.js';
+import { makeFigureUniforms, makePartMaterial, setFigureColours } from './materials.js';
+import { headLandmarks } from './gen/head.js';
+import { irisTexture } from './textures.js';
 
 const API_BONES = ['body', 'shL', 'elL', 'hipL', 'knL', 'anL', 'shR', 'elR', 'hipR', 'knR', 'anR'];
 
@@ -33,13 +35,18 @@ export function assembleFigure(o, parts, opts = {}){
   // the head control: poses and the creator turn it, refine() shares the turn between neck and head bones
   const head = new THREE.Object3D(); B.body.add(head);
   for (const b of list) b.rotation.copy(new THREE.Euler()); // runtime rest: the poses set the joints from here
-  const fig = { root, head, pony:null, skeleton, bones:B, uniforms, mats, meshes, ready:true,
-    update(){ refine(B, head); },
-    setColours(c){ setColours(uniforms, c); } };
+  const fig = { root, head, pony:null, skeleton, bones:B, uniforms, mats, meshes, ready:true, lids:[], blink:{ next:1.5, t:-1 },
+    update(dt, time){ refine(B, head); if (dt) blink(fig, dt); },
+    setColours(c){
+      setFigureColours(uniforms, c, cssGreen());
+      if (fig.helmetMat) fig.helmetMat.color.set(c.helmet);
+      if (fig.eyeMat){ const t = irisTexture(c.eyes); fig.eyeMat.map = t; fig.eyeMat.color.set(t ? '#ffffff' : c.eyes); fig.eyeMat.needsUpdate = true; }
+    } };
   for (const n of API_BONES) fig[n] = B[n];
   B.body.position.y = spec.rest.body[1];
-  fig.setColours(o);
+  addEyes(fig, o);
   if (opts.helmet) attachHelmet(fig, opts.helmet);
+  fig.setColours(o);
   return fig;
 }
 
@@ -61,6 +68,7 @@ function partGeometry(rec, anchor, boneOf){
   g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
   g.setAttribute('normal', new THREE.BufferAttribute(nrm, 3));
   g.setAttribute('aRegion', new THREE.BufferAttribute(rec.region, 4));
+  if (rec.region2) g.setAttribute('aRegion2', new THREE.BufferAttribute(rec.region2, 4));
   g.setAttribute('skinIndex', new THREE.BufferAttribute(si, 4));
   g.setAttribute('skinWeight', new THREE.BufferAttribute(rec.skinWeight, 4, true));
   g.setIndex(new THREE.BufferAttribute(rec.index, 1));
@@ -68,16 +76,49 @@ function partGeometry(rec, anchor, boneOf){
   return g;
 }
 
-const GLOVE = '#C7B48A';
-function setColours(u, c){
-  const green = getComputedStyleSafe('--green') || '#2E8B57';
-  u.uShirt.value.set(c.shirt === 'green' ? green : c.shirt);
-  u.uPants.value.set(c.pants); u.uPocket.value.set(c.pants).multiplyScalar(0.82);
-  u.uBelt.value.set('#1C1A18'); u.uPad.value.set('#1A1714');
-  u.uSkin.value.set(c.skin); u.uGlove.value.set(GLOVE);
-  u.uBoot.value.set('#4A3422'); u.uSole.value.set('#1A1714');
+function cssGreen(){ try { return getComputedStyle(document.documentElement).getPropertyValue('--green').trim() || '#2E8B57'; } catch (e){ return '#2E8B57'; } }
+
+// Eyes: spheres with an iris texture in the sockets the head sculpt leaves for them, and upper and lower lids that
+// are thin shells just in front of the eyeball. A blink rotates the upper lid down over the eye.
+const LID_UP = 1.33, LID_DOWN = 1.15, BLINK_SHUT = -1.0;
+function addEyes(fig, o){
+  const L = headLandmarks(o), r = L.eye.r;
+  const eyeMat = new THREE.MeshPhysicalMaterial({ roughness:0.18, clearcoat:1, clearcoatRoughness:0.05, emissive:new THREE.Color(0), emissiveIntensity:1 });
+  const lidMat = new THREE.MeshStandardMaterial({ vertexColors:true, roughness:0.75, emissive:new THREE.Color(0), emissiveIntensity:1 });
+  lidMat.color = fig.uniforms.uSkin.value; // shares the skin colour
+  const eyeGeo = new THREE.SphereGeometry(r, 28, 18).rotateX(-Math.PI / 2); // the texture's top pole faces forward
+  const upGeo = lidGeometry(r + 0.0009, 0, LID_UP, true), downGeo = lidGeometry(r + 0.0008, Math.PI - LID_DOWN, LID_DOWN, false);
+  for (const side of ['L', 'R']){
+    const g = new THREE.Group(); g.position.fromArray(L.eye[side]);
+    const eye = new THREE.Mesh(eyeGeo, eyeMat), up = new THREE.Mesh(upGeo, lidMat), down = new THREE.Mesh(downGeo, lidMat);
+    g.add(eye, up, down); fig.bones.headB.add(g); fig.lids.push(up);
+  }
+  fig.eyeMat = eyeMat; fig.mats.push(eyeMat, lidMat); fig.eyeGeos = [eyeGeo, upGeo, downGeo];
 }
-function getComputedStyleSafe(v){ try { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); } catch (e){ return ''; } }
+// A spherical cap around +y (thetaStart..thetaStart+len), darkened along the lid's edge for the lash line.
+function lidGeometry(r, start, len, upper){
+  const g = new THREE.SphereGeometry(r, 28, 8, 0, Math.PI * 2, start, len), pos = g.attributes.position, col = new Float32Array(pos.count * 3);
+  for (let i = 0; i < pos.count; i++){
+    const th = Math.acos(Math.max(-1, Math.min(1, pos.getY(i) / r))), edge = upper ? start + len - th : th - start;
+    const k = edge < 0.12 ? 0.22 + edge / 0.12 * 0.5 : 1;
+    col[i * 3] = col[i * 3 + 1] = col[i * 3 + 2] = k;
+  }
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  return g;
+}
+// Every few seconds, sometimes twice: shut in 70 ms, open in 110 ms.
+function blink(fig, dt){
+  const b = fig.blink;
+  b.next -= dt;
+  if (b.t < 0 && b.next <= 0){ b.t = 0; b.next = 2 + ((b.n = ((b.n || 1) * 16807) % 2147483647) % 4000) / 1000; b.double = b.n % 7 === 0; }
+  let a = 0;
+  if (b.t >= 0){
+    b.t += dt;
+    a = b.t < 0.07 ? b.t / 0.07 : Math.max(0, 1 - (b.t - 0.07) / 0.11);
+    if (b.t > 0.18){ if (b.double){ b.double = false; b.t = 0; } else b.t = -1; }
+  }
+  for (const lid of fig.lids) lid.rotation.x = BLINK_SHUT * a;
+}
 
 // A plain hard hat on the head bone until the sculpted one replaces it.
 function attachHelmet(fig, colour){
@@ -85,7 +126,7 @@ function attachHelmet(fig, colour){
   const g = new THREE.Group();
   const dome = new THREE.Mesh(new THREE.SphereGeometry(0.128, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), m); dome.scale.set(1, 0.92, 1.1);
   const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.142, 0.148, 0.012, 32), m); brim.scale.set(1.04, 1, 1.22); brim.position.z = -0.012;
-  g.add(dome, brim); g.position.set(0, 0.07, 0.0);
+  g.add(dome, brim); g.position.set(0, 0.095, 0.0);
   for (const x of g.children){ x.castShadow = x.receiveShadow = true; }
-  fig.bones.headB.add(g); fig.mats.push(m); fig.helmet = g;
+  fig.bones.headB.add(g); fig.mats.push(m); fig.helmet = g; fig.helmetMat = m;
 }
