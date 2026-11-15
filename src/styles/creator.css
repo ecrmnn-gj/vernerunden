@@ -5,6 +5,13 @@
 .cr-head{ flex:none; padding:12px 16px 6px; }
 .cr-head h2{ margin:0; font:italic 900 clamp(21px, 2.99cqw, 28px)/1 "Barlow Condensed","Arial Narrow",sans-serif; color:var(--yellow); }
 .cr-head p{ margin:4px 0 0; font-size:12px; color:var(--hud-muted); }
+.cr-tabs{ flex:none; display:grid; grid-template-columns:repeat(4, 1fr); gap:4px; margin:6px 16px 0; padding:3px; border-radius:8px; background:rgba(255,255,255,.06); }
+.cr-tab{ font:600 13px/1 "Barlow",sans-serif; color:var(--hud-muted); background:transparent; border:0; border-radius:6px; padding:8px 4px; cursor:pointer; }
+.cr-tab:hover{ color:var(--hud-ink); }
+.cr-tab[aria-selected="true"]{ background:var(--green); color:var(--green-ink); }
+.cr-tab:focus-visible{ outline:3px solid var(--yellow); outline-offset:2px; }
+.cr-panel[hidden]{ display:none; }
+.cr-panel > .cr-group:first-child{ border-top:0; }
 .cr-scroll{ flex:1 1 auto; min-height:0; overflow-y:auto; overscroll-behavior:contain; touch-action:pan-y; padding:0 16px 6px; }
 .cr-group{ border:0; margin:0; padding:10px 0 12px; border-top:1px solid var(--hud-line); min-width:0; }
 .cr-group legend{ float:left; width:100%; padding:0; margin:0 0 8px; font:600 12px/1.2 "Barlow",sans-serif; color:var(--hud-muted); }
@@ -28,5 +35,5 @@
 @container (max-width: 640px){
   .creator{ top:auto; left:8px; right:8px; bottom:8px; width:auto; height:min(58%, 430px); }
   .cr-head{ padding:10px 14px 4px; } .cr-head p{ display:none; }
-  .cr-scroll{ padding:0 14px 4px; } .cr-actions{ padding:8px 14px 10px; }
+  .cr-scroll{ padding:0 14px 4px; } .cr-tabs{ margin:4px 14px 0; } .cr-tab{ padding:7px 2px; } .cr-actions{ padding:8px 14px 10px; }
 }

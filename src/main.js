@@ -30,6 +30,7 @@ import './world/buildings.js';
 import './world/cranes.js';
 import './world/roadside.js';
 import { backTex } from './characters/human.js';
+import { repaintPrints } from './characters/figure/textures.js';
 import './characters/poses.js';
 import './characters/player.js';
 import './game/content.js';
@@ -52,6 +53,7 @@ import './ui/creator.js';
 import { applyTheme } from './render/theme.js';
 import { uiState, syncStartUi } from './ui/menus.js';
 import './ui/input.js';
+import './ui/debug.js';
 
 window.__vr3d = true; // tells index.html the game loaded
 
@@ -62,7 +64,7 @@ resize();
 syncGfxBtn();
 camera.position.copy(camPos); camera.lookAt(camLook);
 drawIconCanvases();
-if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { drawIconCanvases(); makeSignTextures(); if (backTex) repaint(backTex); });
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { drawIconCanvases(); makeSignTextures(); if (backTex) repaint(backTex); repaintPrints(); });
 try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme); } catch (e) {}
 new MutationObserver(applyTheme).observe(document.documentElement, { attributes:true, attributeFilter:['data-theme'] });
 applyTheme();

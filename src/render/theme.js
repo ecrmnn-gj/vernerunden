@@ -7,7 +7,7 @@ import { M, GLOW } from './materials.js';
 import { TEX } from '../textures/procedural.js';
 import { makeGroundTextures, makeDirtTextures } from '../textures/ground.js';
 import { groundMesh, dirt } from '../world/ground.js';
-import { player, buildPlayer } from '../characters/player.js';
+import { player, refreshPlayerTheme } from '../characters/player.js';
 
 export function applyTheme(){
   readPalette();
@@ -27,6 +27,6 @@ export function applyTheme(){
   groundMesh.material.map = TEX.ground; groundMesh.material.needsUpdate = true;
   dirt.material.map = TEX.dirt; dirt.material.needsUpdate = true;
   M.pitWall.map = TEX.dirtPit; M.pitWall.needsUpdate = true;
-  if (player) buildPlayer();
+  if (player) refreshPlayerTheme();
   drawIconCanvases();
 }
