@@ -4,7 +4,7 @@ import { P } from '../core/palette.js';
 import { state, setState } from '../game/state.js';
 import { ensureAudio, stopMusic } from '../audio/audio.js';
 import { sfxPickup } from '../audio/sfx.js';
-import { CHAR_OPTS, CHAR_TABS, HEAD_TABS, CHAR_DEFAULT, charSaved, char, setChar, saveChar, sameChar, randomChar, isShapeKey, buildPlayer, applyCharColours, setHelmet } from '../characters/player.js';
+import { CHAR_OPTS, CHAR_TABS, HEAD_TABS, CHAR_DEFAULT, charSaved, char, setChar, saveChar, sameChar, randomChar, isShapeKey, buildPlayer, applyCharColours, setHelmet, player, figureBusy, setFigureListener, refreshTier } from '../characters/player.js';
 import { fxCol, sparkle } from '../render/particles.js';
 import { newGame } from '../game/run.js';
 import { overModal, startModal, startGame } from '../game/flow.js';
@@ -62,11 +62,20 @@ export function selectTab(id, user){
 selectTab('body');
 export function syncCreatorUi(){ for (const k in CHAR_OPTS) for (const inp of creatorEl.querySelectorAll(`input[name="cr-${k}"]`)) inp.checked = inp.value === char[k]; }
 // A colour change only recolours; a shape change (or several options at once) rebuilds the figure.
+// A colour change recolours at once; a shape change (or several options at once) builds a new figure, and the hop
+// and sparkle play when it swaps in. If more changes follow quickly, only the last one swaps in.
 function charChanged(key){
-  if (key && !isShapeKey(key)) applyCharColours(); else buildPlayer();
-  crFx.hop = 0.5;
-  sparkle(0, 1.95, 0, 16, fxCol(P.yellow, 3), 2.2); sfxPickup();
+  if (key && !isShapeKey(key)){ applyCharColours(); cheer(); return; }
+  buildPlayer().then(swapped => { if (swapped && state === 'create') cheer(); });
 }
+function cheer(){ crFx.hop = 0.5; sparkle(0, 1.95, 0, 16, fxCol(P.yellow, 3), 2.2); sfxPickup(); }
+// While a new figure is being built the form says so; starting is only held back until the very first one exists.
+const crStart = $('crStart');
+function syncBusy(){
+  creatorEl.setAttribute('aria-busy', String(figureBusy()));
+  crStart.disabled = !(player && player.ready);
+}
+setFigureListener(syncBusy);
 // A shift in progress is abandoned, as a restart always did.
 const RUNNING = new Set(['countdown', 'playing', 'paused', 'loading', 'ending']);
 function openCreator(){
@@ -76,6 +85,7 @@ function openCreator(){
   startModal.hidden = true; overModal.hidden = true;
   crBackup = Object.assign({}, char);
   newGame(); setState('create'); crFx.spin = 0; selectTab(crTab);
+  refreshTier(); syncBusy();
   $('crCancel').hidden = !charSaved;
   syncCreatorUi(); syncStartUi();
   crGroups.scrollTop = 0;
@@ -92,6 +102,7 @@ export function cancelCreator(){
   if (changed) buildPlayer();
 }
 function saveAndStart(){
+  if (!(player && player.ready)) return; // the first figure is still on its way
   saveChar(); setHelmet(true);
   startGame();
 }

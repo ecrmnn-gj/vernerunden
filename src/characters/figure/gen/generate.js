@@ -13,14 +13,12 @@ import { bodyScene, bodyRegions } from './body.js';
 import { handScene, handRegions } from './hands.js';
 import { headScene, headRegions } from './head.js';
 import { bootScene, bootRegions } from './boots.js';
-import { partKey } from '../keys.js';
+import { partKey, GEN_VERSION } from '../keys.js';
 import { hairScene } from './hair.js';
 import { beardScene } from './beard.js';
 import { vestScene } from './vest.js';
-export { partKey };
+export { partKey, GEN_VERSION };
 
-// Bump whenever any generated output changes, so cached parts from older code are not reused.
-export const GEN_VERSION = 6;
 
 // Grid cell size (m) and triangle budget per part and quality tier.
 export const TIERS = {

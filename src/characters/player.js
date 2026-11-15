@@ -12,8 +12,9 @@ import { requestPart } from './figure/client.js';
 import { PARTS, partKey } from './figure/keys.js';
 import { gfxTier } from '../core/quality.js';
 
-// The generated figure is opt-in while it is being built: ?fig=new, or localStorage vr3d:fig = "new".
-export const NEW_FIG = (() => { try { return new URLSearchParams(location.search).get('fig') === 'new' || localStorage.getItem('vr3d:fig') === 'new'; } catch (e){ return false; } })();
+// The player is the generated figure (figure/). The old makeHuman figure remains as a fallback if generation fails,
+// and with ?fig=old for comparison.
+let legacy = (() => { try { return new URLSearchParams(location.search).get('fig') === 'old'; } catch (e){ return false; } })();
 
 // The schema (options, defaults, migration, random figures) lives in charSchema.js; re-exported for the UI.
 export { CHAR_OPTS, CHAR_TABS, HEAD_TABS, CHAR_DEFAULT, sameChar, randomChar, isShapeKey } from './charSchema.js';
@@ -39,17 +40,23 @@ function charToHuman(c){
 let helmetOn = true;
 export function setHelmet(on){
   if (on === helmetOn) return; helmetOn = on;
-  if (NEW_FIG){ if (player && player.setHelmet) player.setHelmet(on); return; }
+  if (!legacy){ if (player && player.setHelmet) player.setHelmet(on); return; }
   buildPlayer();
 }
 export let player = null, playerMats = [], playerRainbow = false;
 export function setPlayerRainbow(on){ playerRainbow = on; }
-// (Re)build the player from `char`, keeping where it stands. Each mesh gets its own material so super speed can tint them.
+// (Re)build the player from `char`, keeping where it stands. Returns a promise that resolves once the new figure is
+// showing (true), or was superseded by a newer request (false).
 export function buildPlayer(){
-  if (NEW_FIG) return buildFigure();
+  if (!legacy) return buildFigure();
+  buildLegacy();
+  return Promise.resolve(true);
+}
+// The old figure. Each mesh gets its own material so super speed can tint them.
+function buildLegacy(){
   const keep = player && { p:player.root.position.clone(), r:player.root.rotation.clone() };
   if (player){ scene.remove(player.root); disposeBaked(player.root); player.root.traverse(m => { if (m.isMesh) m.material.dispose(); }); }
-  player = makeHuman(charToHuman(char)); playerMats = []; playerRainbow = false;
+  player = makeHuman(charToHuman(char)); player.ready = true; playerMats = []; playerRainbow = false;
   player.root.traverse(m => { if (m.isMesh){ m.material = m.material.clone(); if (m.material.emissive){ m.material.userData.e0 = m.material.emissive.clone(); m.material.userData.i0 = m.material.emissiveIntensity; playerMats.push(m.material); } } });
   if (keep){ player.root.position.copy(keep.p); player.root.rotation.copy(keep.r); }
   scene.add(player.root);
@@ -59,7 +66,7 @@ export function buildPlayer(){
 // stub with the same joints: everything that poses or moves the player works from the first frame.
 // Colour-only changes (and theme changes, for the Grønn Jobb green) recolour the generated figure in place; the
 // legacy figure has to be rebuilt.
-export function applyCharColours(){ if (NEW_FIG && player && player.setColours) player.setColours(char); else buildPlayer(); }
+export function applyCharColours(){ if (!legacy && player && player.setColours) player.setColours(char); else buildPlayer(); }
 export function refreshPlayerTheme(){ applyCharColours(); }
 function stubRig(){
   const root = new THREE.Group(), f = { root, pony:null, ready:false };
@@ -72,16 +79,35 @@ function stubRig(){
   root.visible = false;
   return f;
 }
-let figReq = 0;
+// The creator shows when a new figure is on its way (busy) and whether one has ever been ready.
+let onFigureState = null;
+export function setFigureListener(fn){ onFigureState = fn; }
+export const figureBusy = () => figReq !== figDone;
+let figReq = 0, figDone = 0;
 function buildFigure(){
   if (!player){ player = stubRig(); scene.add(player.root); }
   const o = Object.assign({}, char), id = ++figReq, tier = gfxTier;
-  return Promise.all(PARTS.map(k => requestPart(k, o, tier, tier + ':' + partKey(k, o)))).then(recs => {
-    if (id !== figReq) return; // a newer request superseded this one
+  if (onFigureState) onFigureState();
+  return Promise.all(PARTS.map(k => requestPart(k, o, tier, partKey(k, o)))).then(recs => {
+    if (id !== figReq) return false; // a newer request superseded this one
     const parts = {}; PARTS.forEach((k, i) => { parts[k] = recs[i]; });
-    swapPlayer(assembleFigure(o, parts, { helmet:helmetOn, detail:tier !== 'low' }));
-  }, err => { console.error('figure generation failed', err); });
+    const fig = assembleFigure(o, parts, { helmet:helmetOn, detail:tier !== 'low' });
+    fig.tier = tier; fig.char = o;
+    swapPlayer(fig); figDone = id;
+    if (onFigureState) onFigureState();
+    return true;
+  }, err => {
+    // the generated figure failed: fall back to the old one rather than show nothing
+    console.error('figure generation failed; using the simple figure', err);
+    legacy = true; figDone = figReq;
+    if (player && !player.ready) { scene.remove(player.root); player = null; }
+    buildLegacy();
+    if (onFigureState) onFigureState();
+    return true;
+  });
 }
+// The quality tier can drop during a run; the figure follows at the next opportunity that isn't gameplay.
+export function refreshTier(){ if (!legacy && player && player.tier && player.tier !== gfxTier) buildPlayer(); }
 function swapPlayer(fig){
   const old = player;
   if (old){ fig.root.position.copy(old.root.position); fig.root.rotation.copy(old.root.rotation); scene.remove(old.root); disposeFigure(old); }

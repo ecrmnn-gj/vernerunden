@@ -6,6 +6,7 @@ import { migrateChar } from '../characters/charSchema.js';
 import { poseReset, poseRun, poseJump, poseSlide, poseReady } from '../characters/poses.js';
 import { dbg } from '../render/frame.js';
 import { requestStart, selectTab, syncCreatorUi } from './creator.js';
+import { partStats } from '../characters/figure/client.js';
 
 const POSES = {
   reset:f => poseReset(f),
@@ -20,6 +21,7 @@ const POSES = {
 if (new URLSearchParams(location.search).has('debug')){
   window.__vr3dDebug = {
     state:() => state,
+    figStats:() => Object.assign({}, partStats),
     char:() => Object.assign({}, char),
     player:() => player,
     setChar(c){ setChar(migrateChar(Object.assign({}, char, c))); buildPlayer(); syncCreatorUi(); },
