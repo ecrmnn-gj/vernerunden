@@ -34,6 +34,21 @@ export function sampleGrid(scene, box, h, opts = {}){
     brickCand[bi + bx * (bj + by * bk)] = cand ? Int32Array.from(cand) : null;
     if (dense) brickCand[bi + bx * (bj + by * bk)] = 'all';
     evaluated++;
+    if (dense){ evalBlock(i0, i1, j0, j1, k0, k1, null); continue; }
+    // Within a brick near the surface, each of its eight 4³ sub-blocks is either clearly away from the surface (filled
+    // with its sign) or evaluated point by point.
+    for (let sk = k0; sk < k1; sk += 4) for (let sj = j0; sj < j1; sj += 4) for (let si = i0; si < i1; si += 4){
+      const a1 = Math.min(si + 4, i1), b1 = Math.min(sj + 4, j1), c1 = Math.min(sk + 4, k1);
+      const hd = Math.sqrt((a1 - si) ** 2 + (b1 - sj) ** 2 + (c1 - sk) ** 2) * h / 2;
+      const dc = scene.distC(x0 + (si + a1) / 2 * h, y0 + (sj + b1) / 2 * h, z0 + (sk + c1) / 2 * h, cand) - iso;
+      if (Math.abs(dc) > 1.5 * hd){
+        const fill = dc > 0 ? dc - hd : dc + hd;
+        for (let k = sk; k <= c1; k++) for (let j = sj; j <= b1; j++){ let idx = si + px * j + sxy * k; for (let i = si; i <= a1; i++, idx++) if (vals[idx] !== vals[idx]) vals[idx] = fill; }
+      } else evalBlock(si, a1, sj, b1, sk, c1, cand);
+    }
+  }
+  // Every point of a block, overwriting any sign fill a neighbouring block left on a shared face.
+  function evalBlock(i0, i1, j0, j1, k0, k1, cand){
     for (let k = k0; k <= k1; k++){
       const z = z0 + k * h;
       for (let j = j0; j <= j1; j++){

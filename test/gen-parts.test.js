@@ -90,8 +90,21 @@ describe('budgets and determinism', () => {
   for (const tier of Object.keys(TIERS)){
     it(`${tier}: the default figure fits the triangle budget`, async () => {
       let total = 0;
-      for (const kind of ['body', 'hands', 'head', 'boot']){
+      for (const kind of ['body', 'hands', 'head', 'boot', 'hair', 'vest']){
         const rec = await generatePart(kind, BASE, tier), tris = rec.index.length / 3;
+        expect(tris, kind).toBeLessThanOrEqual(TIERS[tier][kind][1] * 1.3);
+        total += tris * (kind === 'boot' ? 2 : 1);
+      }
+      expect(total).toBeLessThanOrEqual(LIMIT[tier]);
+    }, 60000);
+  }
+  // the heaviest options together: the most hair, the biggest beard, the widest body, bare arms, gloves
+  const HEAVY = { ...BASE, build:'sturdy', hairStyle:'afro', facial:'long', sleeves:'short', gloves:'on' };
+  for (const tier of Object.keys(TIERS)){
+    it(`${tier}: the heaviest figure fits the triangle budget`, async () => {
+      let total = 0;
+      for (const kind of ['body', 'hands', 'head', 'boot', 'hair', 'beard', 'vest']){
+        const rec = await generatePart(kind, HEAVY, tier), tris = rec.index.length / 3;
         expect(tris, kind).toBeLessThanOrEqual(TIERS[tier][kind][1] * 1.3);
         total += tris * (kind === 'boot' ? 2 : 1);
       }

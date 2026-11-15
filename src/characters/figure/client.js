@@ -3,36 +3,45 @@
 // unavailable or fail to start, so the figure always appears.
 import { cacheGet, cachePut, cacheId } from './cache.js';
 
-let worker = null, seq = 0;
+// A small pool of workers: the parts are independent, so several cores build a figure faster than one.
+const POOL = (() => { try { return Math.max(1, Math.min(3, (navigator.hardwareConcurrency || 2) - 1)); } catch (e){ return 1; } })();
+let workers = null, seq = 0;
 const pending = new Map(), memory = new Map(), inflight = new Map(), MEMORY_MAX = 32;
 // How parts were obtained, for the ?debug hook and the scenario checks.
 export const partStats = { memory:0, stored:0, generated:0 };
 const CACHE_WAIT = 400; // ms
 
+function startWorker(){
+  const w = new Worker(new URL('./gen/worker.js', import.meta.url), { type:'module' });
+  w.busy = 0;
+  w.onmessage = e => {
+    const p = pending.get(e.data.id); if (!p) return;
+    pending.delete(e.data.id); w.busy--;
+    if (e.data.error) p.reject(new Error(e.data.error)); else p.resolve(e.data.rec);
+  };
+  // a worker that can't load: generate its outstanding parts here instead, and stop using workers
+  w.onerror = e => {
+    if (e && e.preventDefault) e.preventDefault();
+    workers = false;
+    for (const [id, p] of pending){ if (p.w !== w) continue; pending.delete(id); local(p.args).then(p.resolve, p.reject); }
+  };
+  return w;
+}
 function getWorker(){
-  if (worker === false) return null;
-  if (worker) return worker;
+  if (workers === false) return null;
   try {
-    worker = new Worker(new URL('./gen/worker.js', import.meta.url), { type:'module' });
-    worker.onmessage = e => {
-      const p = pending.get(e.data.id); if (!p) return;
-      pending.delete(e.data.id);
-      if (e.data.error) p.reject(new Error(e.data.error)); else p.resolve(e.data.rec);
-    };
-    // a worker that can't load: generate the outstanding parts here instead
-    worker.onerror = e => {
-      if (e && e.preventDefault) e.preventDefault();
-      worker = false;
-      for (const [id, p] of pending){ pending.delete(id); local(p.args).then(p.resolve, p.reject); }
-    };
-  } catch (e){ worker = false; }
-  return worker || null;
+    if (!workers) workers = [startWorker()];
+    // the least busy worker, starting another while the pool has room
+    let best = workers.reduce((a, b) => (b.busy < a.busy ? b : a));
+    if (best.busy > 0 && workers.length < POOL){ best = startWorker(); workers.push(best); }
+    return best;
+  } catch (e){ workers = false; return null; }
 }
 async function local([kind, o, tier]){ const { generatePart } = await import('./gen/generate.js'); return generatePart(kind, o, tier); }
 function generate(kind, o, tier){
   const w = getWorker(), args = [kind, o, tier];
   if (!w) return local(args);
-  return new Promise((resolve, reject) => { const id = ++seq; pending.set(id, { resolve, reject, args }); w.postMessage({ id, kind, o, tier }); });
+  return new Promise((resolve, reject) => { const id = ++seq; w.busy++; pending.set(id, { resolve, reject, args, w }); w.postMessage({ id, kind, o, tier }); });
 }
 function remember(id, rec){
   memory.delete(id); memory.set(id, rec);
@@ -59,5 +68,6 @@ export function requestPart(kind, o, tier, key){
   inflight.set(id, job);
   return job;
 }
-// Idle housekeeping outside the creator: the worker holds the simplifier's memory, so let it go when not needed.
-export function releaseWorker(){ if (worker && !pending.size){ worker.terminate(); worker = null; } }
+// Idle housekeeping outside the creator: the workers hold the simplifier's memory, so let them go when not needed.
+// They start again on the next request.
+export function releaseWorkers(){ if (workers && !pending.size){ for (const w of workers) w.terminate(); workers = null; } }

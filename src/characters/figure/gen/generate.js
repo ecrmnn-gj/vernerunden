@@ -34,16 +34,18 @@ const pad = (b, m) => [b[0] - m, b[1] - m, b[2] - m, b[3] + m, b[4] + m, b[5] + 
 // edge. That depends on exactly where the samples fall, so the part is re-extracted with the grid shifted by a
 // fraction of a cell, or the surface offset by a fifth of one (well under a millimetre), until it comes out clean.
 const RETRIES = [[0, 0], [0.37, 0], [0, 0.2], [0, -0.2], [0.71, 0.2], [0.19, -0.2]];
-function extract(scene, h){
+// steps: Newton steps per vertex; the face, hands and beard keep two, smooth large parts manage with one.
+function extract(scene, h, steps = 1){
   const t0 = now();
-  let m, G, t1;
+  let m, G, t1, tries = 0;
   for (const [s, iso] of RETRIES){
+    tries++;
     const box = pad(scene.bounds, 3 * h).map((v, i) => v + (i < 3 ? -s * h : 0));
-    G = sampleGrid(scene, box, h, { iso:iso * h }); t1 = now(); m = surfaceNets(G);
+    G = sampleGrid(scene, box, h, { iso:iso * h }); t1 = now(); m = surfaceNets(G, { newtonSteps:steps });
     if (!edgeReport(m.index).nonManifold) break;
   }
   m.index = dropSpecks(m.index, m.positions.length / 3, 40);
-  return { m, ms:{ sample:t1 - t0, extract:now() - t1 }, cells:G.nx * G.ny * G.nz };
+  return { m, ms:{ sample:t1 - t0, extract:now() - t1, tries }, cells:G.nx * G.ny * G.nz };
 }
 const now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
 
@@ -72,11 +74,11 @@ export async function generatePart(kind, o, tier = 'medium'){
     rec = await finish(kind, scene, x.m, p => bodyRegions(p, tags), budget, BONE_NAMES, { chains:chains(spec), smooth:2 });
     rec.anchor = null; rec.ms = x.ms; rec.cells = x.cells;
   } else if (kind === 'hands'){
-    const spec = rigSpec(o), { scene } = handScene(o, spec, 'L'), x = extract(scene, h);
+    const spec = rigSpec(o), { scene } = handScene(o, spec, 'L'), x = extract(scene, h, 2);
     const left = await finish(kind, scene, x.m, p => handRegions(o, spec, p, 'L'), budget / 2, BONE_NAMES, { chains:chains(spec), smooth:1 });
     rec = mergeMirrored(left); rec.anchor = null; rec.ms = x.ms; rec.cells = x.cells;
   } else if (kind === 'head'){
-    const { scene, tags, landmarks } = headScene(o), x = extract(scene, h);
+    const { scene, tags, landmarks } = headScene(o), x = extract(scene, h, 2);
     rec = await finish(kind, scene, x.m, p => headRegions(p, tags, landmarks), budget, ['chest', 'neckB', 'headB'], {});
     rec.anchor = 'headB'; rec.ms = x.ms; rec.cells = x.cells;
   } else if (kind === 'boot'){
@@ -91,7 +93,7 @@ export async function generatePart(kind, o, tier = 'medium'){
     const built = kind === 'beard' ? beardScene(o) : hairScene(o, kind === 'hairU');
     if (!built) rec = emptyPart();
     else {
-      const x = extract(built.scene, h), none = p => new Float32Array(p.length / 3 * 4).fill(1);
+      const x = extract(built.scene, h, kind === 'beard' ? 2 : 1), none = p => new Float32Array(p.length / 3 * 4).fill(1);
       rec = await finish(kind, built.scene, x.m, none, budget, BONE_NAMES, { chains:built.chains || {} });
       rec.ms = x.ms; rec.cells = x.cells;
     }

@@ -1,4 +1,4 @@
-// The hi-vis vest: a shell over the torso in its shirt, from just below the chest down to above the belt, with
+// The hi-vis vest: the torso in its shirt grown by the vest's thickness, from just below the chest down to above the belt, with
 // armholes and a V-neck. Built in the bind pose like the body and skinned like the torso under it. The reflective
 // tape, the VERNEOMBUD print and the logo are drawn by the vest's shader, not modelled.
 import { Scene, Ellipsoid, Capsule, smax } from './sdf.js';
@@ -18,8 +18,9 @@ export function vestScene(o){
   const s = new Scene();
   s.add(new Fn((x, y, z) => {
     const d = T.dist(x, y, z);
-    // from 4 mm inside the shirt (hidden) to 8 mm outside it: thick enough to extract cleanly
-    let v = Math.max(d - 0.008, -(d + 0.004));
+    // 8 mm outside the shirt and solid through the body (hidden inside it): no thin inner sheet to extract, and the
+    // hidden cut faces at the hem, neck and armholes are flat, so they simplify to almost nothing
+    let v = d - 0.008;
     v = smax(v, VEST.hem - y, 0.004);
     const cut = Math.min(arms[0].dist(x, y, z), arms[1].dist(x, y, z), neck.dist(x, y, z), vee.dist(x, y, z));
     return smax(v, -cut, 0.008);

@@ -101,6 +101,9 @@ export function surfaceNets(G, opts = {}){
         const gl = Math.hypot(g[0], g[1], g[2]);
         if (gl > 1e-12) nrm = [g[0] / gl, g[1] / gl, g[2] / gl];
       }
+      // two sheets in one cell can be clamped to the same point; coincident vertices look like an attribute seam
+      // to the simplifier, which then welds the sheets and opens a hole, so nudge a duplicate apart by a hair
+      for (const v of vid) if (P[v * 3] === x && P[v * 3 + 1] === y && P[v * 3 + 2] === z){ x += 2e-5; y += 2e-5; }
       vid.push(P.length / 3);
       P.push(x, y, z); N.push(nrm ? nrm[0] : NaN, nrm ? nrm[1] : 0, nrm ? nrm[2] : 0); F.push(boundary ? 1 : 0);
     }
@@ -137,14 +140,18 @@ export function surfaceNets(G, opts = {}){
   separateDuplicates(positions, normals);
   return { positions, normals, index, flags };
 }
-// Two sheets in one cell can be clamped to the same point. Coincident vertices look like a single vertex with an
-// attribute seam to the simplifier, which then welds the sheets and opens a hole, so nudge them apart by a hair.
+// Vertices from different cells can also land on exactly the same point (where the surface passes through a grid
+// corner). Find them by sorting rather than hashing, and nudge each repeat apart along its normal.
 function separateDuplicates(pos, nrm){
-  const seen = new Map(), nv = pos.length / 3;
-  for (let v = 0; v < nv; v++){
-    const key = pos[v * 3] + ',' + pos[v * 3 + 1] + ',' + pos[v * 3 + 2], n = seen.get(key) || 0;
-    if (n) for (let c = 0; c < 3; c++) pos[v * 3 + c] += nrm[v * 3 + c] * 2e-5 * n;
-    seen.set(key, n + 1);
+  const nv = pos.length / 3, order = new Uint32Array(nv);
+  for (let i = 0; i < nv; i++) order[i] = i;
+  order.sort((a, b) => pos[a * 3] - pos[b * 3] || pos[a * 3 + 1] - pos[b * 3 + 1] || pos[a * 3 + 2] - pos[b * 3 + 2]);
+  // compare each vertex with the first of its run (its original position), so a third copy is caught too
+  let bx = pos[order[0] * 3], by = pos[order[0] * 3 + 1], bz = pos[order[0] * 3 + 2], run = 0;
+  for (let i = 1; i < nv; i++){
+    const b = order[i] * 3;
+    if (pos[b] === bx && pos[b + 1] === by && pos[b + 2] === bz){ run++; for (let c = 0; c < 3; c++) pos[b + c] += nrm[b + c] * 2e-5 * run; }
+    else { bx = pos[b]; by = pos[b + 1]; bz = pos[b + 2]; run = 0; }
   }
 }
 function dist2(P, a, b){ const dx = P[a * 3] - P[b * 3], dy = P[a * 3 + 1] - P[b * 3 + 1], dz = P[a * 3 + 2] - P[b * 3 + 2]; return dx * dx + dy * dy + dz * dz; }

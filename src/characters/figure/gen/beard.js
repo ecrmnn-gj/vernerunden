@@ -18,6 +18,14 @@ function areas(o){
   const full = beardArea(o);
   return { mustache:minOf(must), goatee:minOf(goat), mustacheGoatee:minOf([...must, ...goat]), boxed:(x, y, z) => full.dist(x, y, z), full:(x, y, z) => full.dist(x, y, z), long:(x, y, z) => full.dist(x, y, z) };
 }
+// Bounds of each style's area, for sampling only where the beard is.
+function AREA_BOUNDS(o){
+  const L = headLandmarks(o), M = L.mouth, full = beardArea(o).bounds;
+  const must = [-0.034, M.y - 0.01, M.z - 0.016, 0.034, M.y + 0.024, M.z + 0.012];
+  const goat = [-0.03, -0.1 * L.fs.tall, -0.105 * L.k, 0.03, M.y - 0.008, -0.04];
+  const union = (a, b) => [Math.min(a[0], b[0]), Math.min(a[1], b[1]), Math.min(a[2], b[2]), Math.max(a[3], b[3]), Math.max(a[4], b[4]), Math.max(a[5], b[5])];
+  return { mustache:must, goatee:goat, mustacheGoatee:union(must, goat), boxed:full, full, long:full };
+}
 const THICK = { mustache:0.0055, goatee:0.006, mustacheGoatee:0.006, boxed:0.005, full:0.009, long:0.009 };
 
 export function beardScene(o){
@@ -25,7 +33,9 @@ export function beardScene(o){
   if (NO_BEARD_MESH.has(style)) return null;
   const head = headScene(o).scene, area = areas(o)[style], t0 = THICK[style], noise = valueNoise3(23), L = headLandmarks(o);
   const s = new Scene(), rigid = { bind:{ bone:'headB' } };
-  const bounds = [-0.11, -0.2, -0.16, 0.11, 0.08, 0.06];
+  // only where this style grows: the area's bounds, widened by the beard's thickness
+  const ab = AREA_BOUNDS(o)[style], pad = t0 + 0.012;
+  const bounds = [ab[0] - pad, ab[1] - pad, ab[2] - pad, ab[3] + pad, ab[4] + pad, ab[5] + pad];
   s.add(new Fn((x, y, z) => {
     const m = area(x, y, z), d = head.dist(x, y, z);
     // thickness fades to nothing over the last 6 mm inside the area's edge

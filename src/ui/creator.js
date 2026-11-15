@@ -10,6 +10,7 @@ import { newGame } from '../game/run.js';
 import { overModal, startModal, startGame } from '../game/flow.js';
 import { crFx } from '../render/frame.js';
 import { cdEl, pauseEl } from './overlays.js';
+import { releaseWorkers } from '../characters/figure/client.js';
 import { creatorEl, crGroups, syncStartUi } from './menus.js';
 
 // Every start and restart opens the creator first; starting from inside it saves the figure and runs.
@@ -91,8 +92,11 @@ function openCreator(){
   crGroups.scrollTop = 0;
   const first = creatorEl.querySelector('input:checked'); if (first) first.focus({ preventScroll:true });
 }
+// Outside the creator the figure builders aren't needed: free their memory after a while.
+let idleTimer = 0;
+function leftCreator(){ clearTimeout(idleTimer); idleTimer = setTimeout(() => { if (state !== 'create') releaseWorkers(); }, 30000); }
 function closeCreator(){
-  setState('start'); setHelmet(true); syncStartUi();
+  setState('start'); setHelmet(true); syncStartUi(); leftCreator();
   $('startBtn2').focus({ preventScroll:true });
 }
 export function cancelCreator(){
@@ -103,7 +107,7 @@ export function cancelCreator(){
 }
 function saveAndStart(){
   if (!(player && player.ready)) return; // the first figure is still on its way
-  saveChar(); setHelmet(true);
+  saveChar(); setHelmet(true); leftCreator();
   startGame();
 }
 creatorEl.addEventListener('change', e => {

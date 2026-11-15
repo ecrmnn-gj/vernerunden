@@ -4,6 +4,8 @@
 import { valueNoise3 } from './rng.js';
 
 const INF = 1e9;
+// Room for distance functions that are close to, but not exactly, true distances (the ellipsoid).
+const SKIP_SLACK = 0.002;
 const len3 = (x, y, z) => Math.sqrt(x * x + y * y + z * z);
 const sphereBounds = (cx, cy, cz, r) => [cx - r, cy - r, cz - r, cx + r, cy + r, cz + r];
 const segBounds = (a, b, r) => [Math.min(a[0], b[0]) - r, Math.min(a[1], b[1]) - r, Math.min(a[2], b[2]) - r, Math.max(a[0], b[0]) + r, Math.max(a[1], b[1]) + r, Math.max(a[2], b[2]) + r];
@@ -159,11 +161,20 @@ export class Scene {
   }
   dist(x, y, z){ return this.distC(x, y, z, null); }
   // Distance using only the nodes listed in cand (indices in scene order), or all nodes when cand is null.
+  // A node whose bounding box is farther away than it could matter is skipped without evaluating it: the distance to
+  // a primitive is at least the distance to its box, so a union node beyond d + k, or a cut-away node beyond k - d,
+  // can't change the result. This is what keeps nested scenes (an arm, the torso under the vest) cheap.
   distC(x, y, z, cand){
     const nodes = this.nodes, n = cand ? cand.length : nodes.length;
     let d = INF;
     for (let j = 0; j < n; j++){
-      const nd = nodes[cand ? cand[j] : j], di = nd.p.dist(x, y, z);
+      const nd = nodes[cand ? cand[j] : j], b = nd.p.bounds;
+      if (b && nd.op !== INT && d < INF){
+        const ex = b[0] - x > 0 ? b[0] - x : x - b[3] > 0 ? x - b[3] : 0, ey = b[1] - y > 0 ? b[1] - y : y - b[4] > 0 ? y - b[4] : 0, ez = b[2] - z > 0 ? b[2] - z : z - b[5] > 0 ? z - b[5] : 0;
+        const lb = ex * ex + ey * ey + ez * ez, lim = (nd.op === ADD ? d + nd.k : nd.k - d) + SKIP_SLACK;
+        if (lim <= 0 || lb > lim * lim) continue;
+      }
+      const di = nd.p.dist(x, y, z);
       d = nd.op === ADD ? smin(d, di, nd.k) : nd.op === SUB ? smax(d, -di, nd.k) : smax(d, di, nd.k);
     }
     return d;
