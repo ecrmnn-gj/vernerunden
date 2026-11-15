@@ -42,8 +42,12 @@ function restPositions(o){
   const { bx, hx } = widths(o);
   const P = {
     body:[0, BODY_Y, 0], pelvis:[0, 0, 0], spine:[0, 0.12, 0], chest:[0, 0.34, 0], neckB:[0, 0.24, 0], headB:[0, 0.075, 0.005],
-    pony0:[0, 0, 0.1], pony1:[0, -0.08, 0], pony2:[0, -0.08, 0], braidL0:[-0.06, -0.04, 0.07], braidL1:[0, -0.09, 0], braidL2:[0, -0.09, 0],
-    braidR0:[0.06, -0.04, 0.07], braidR1:[0, -0.09, 0], braidR2:[0, -0.09, 0], hairBack0:[0, 0, 0.08], hairBack1:[0, -0.08, 0], hairBack2:[0, -0.08, 0]
+    // hair chains, in the head bone's space: the ponytail hangs from its tie, braids from behind the ears, long hair
+    // from the back of the head
+    pony0:[0, 0.055, 0.108], pony1:[0, -0.075, 0.012], pony2:[0, -0.075, 0.006],
+    braidL0:[-0.05, 0.0, 0.075], braidL1:[0, -0.07, 0.006], braidL2:[0, -0.07, 0.002],
+    braidR0:[0.05, 0.0, 0.075], braidR1:[0, -0.07, 0.006], braidR2:[0, -0.07, 0.002],
+    hairBack0:[0, 0.0, 0.085], hairBack1:[0, -0.07, 0.006], hairBack2:[0, -0.07, 0.002]
   };
   for (const [s, x] of [['L', -1], ['R', 1]]){
     // the clavicle starts beside the sternum; the shoulder sits at makeHuman's pivot (±0.205·bx, 0.60) in body space

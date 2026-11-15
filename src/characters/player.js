@@ -39,7 +39,7 @@ function charToHuman(c){
 let helmetOn = true;
 export function setHelmet(on){
   if (on === helmetOn) return; helmetOn = on;
-  if (NEW_FIG){ if (player && player.helmet) player.helmet.visible = on; return; }
+  if (NEW_FIG){ if (player && player.setHelmet) player.setHelmet(on); return; }
   buildPlayer();
 }
 export let player = null, playerMats = [], playerRainbow = false;
@@ -79,13 +79,13 @@ function buildFigure(){
   return Promise.all(PARTS.map(k => requestPart(k, o, tier, tier + ':' + partKey(k, o)))).then(recs => {
     if (id !== figReq) return; // a newer request superseded this one
     const parts = {}; PARTS.forEach((k, i) => { parts[k] = recs[i]; });
-    swapPlayer(assembleFigure(o, parts, { helmet:o.helmet }));
+    swapPlayer(assembleFigure(o, parts, { helmet:helmetOn }));
   }, err => { console.error('figure generation failed', err); });
 }
 function swapPlayer(fig){
   const old = player;
   if (old){ fig.root.position.copy(old.root.position); fig.root.rotation.copy(old.root.rotation); scene.remove(old.root); disposeFigure(old); }
-  if (fig.helmet) fig.helmet.visible = helmetOn;
+  if (fig.setHelmet) fig.setHelmet(helmetOn);
   player = fig; playerRainbow = false;
   playerMats = fig.mats.filter(m => m.emissive);
   for (const m of playerMats){ m.userData.e0 = m.emissive.clone(); m.userData.i0 = m.emissiveIntensity; }

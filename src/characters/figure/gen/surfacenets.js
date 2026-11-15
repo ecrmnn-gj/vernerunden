@@ -53,7 +53,7 @@ function gradient(scene, cand, x, y, z, e, out){
 // G: a grid from sampleGrid. Returns positions, normals (unit), triangle indices, and per-vertex flags (1 = on the
 // grid's capped boundary, where the surface is the cap rather than the shape).
 export function surfaceNets(G, opts = {}){
-  const { scene, vals, nx, ny, nz, h, x0, y0, z0 } = G;
+  const { scene, vals, nx, ny, nz, h, x0, y0, z0 } = G, iso = G.iso || 0;
   const steps = opts.newtonSteps != null ? opts.newtonSteps : 2;
   const px = nx + 1, py = ny + 1, sxy = px * py;
   // per active cell: the offset of its 12 per-edge vertex ids in edgeVert
@@ -89,7 +89,7 @@ export function surfaceNets(G, opts = {}){
       if (!boundary && cand){
         const cc = cand === 'all' ? null : cand, lo = -0.25 * h, hi = 1.25 * h;
         for (let s = 0; s < steps; s++){
-          const f = scene.distC(x, y, z, cc); gradient(scene, cc, x, y, z, eps, g);
+          const f = scene.distC(x, y, z, cc) - iso; gradient(scene, cc, x, y, z, eps, g);
           const g2 = (g[0] * g[0] + g[1] * g[1] + g[2] * g[2]) / (16 * eps * eps);
           if (g2 < 1e-10) break;
           const sc = f / g2 / (4 * eps);
@@ -134,7 +134,18 @@ export function surfaceNets(G, opts = {}){
   const positions = new Float32Array(P), index = new Uint32Array(I), normals = new Float32Array(N), flags = new Uint8Array(F);
   // vertices without a field normal (the cap) take the area-weighted normal of their triangles
   fillMissingNormals(positions, index, normals);
+  separateDuplicates(positions, normals);
   return { positions, normals, index, flags };
+}
+// Two sheets in one cell can be clamped to the same point. Coincident vertices look like a single vertex with an
+// attribute seam to the simplifier, which then welds the sheets and opens a hole, so nudge them apart by a hair.
+function separateDuplicates(pos, nrm){
+  const seen = new Map(), nv = pos.length / 3;
+  for (let v = 0; v < nv; v++){
+    const key = pos[v * 3] + ',' + pos[v * 3 + 1] + ',' + pos[v * 3 + 2], n = seen.get(key) || 0;
+    if (n) for (let c = 0; c < 3; c++) pos[v * 3 + c] += nrm[v * 3 + c] * 2e-5 * n;
+    seen.set(key, n + 1);
+  }
 }
 function dist2(P, a, b){ const dx = P[a * 3] - P[b * 3], dy = P[a * 3 + 1] - P[b * 3 + 1], dz = P[a * 3 + 2] - P[b * 3 + 2]; return dx * dx + dy * dy + dz * dz; }
 function fillMissingNormals(pos, index, nrm){

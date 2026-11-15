@@ -6,7 +6,8 @@ const B = 8;
 // whatever the grid cuts through is capped and every extracted part is a closed shell.
 // opts.dense evaluates every point with every node (slow; the reference the sparse path is tested against).
 export function sampleGrid(scene, box, h, opts = {}){
-  const dense = !!opts.dense, margin = opts.margin != null ? opts.margin : 2 * h;
+  // iso: extract the surface at this distance instead of zero (a slightly grown or shrunk shape)
+  const dense = !!opts.dense, margin = opts.margin != null ? opts.margin : 2 * h, iso = opts.iso || 0;
   const [x0, y0, z0, x1, y1, z1] = box;
   const nx = Math.max(2, Math.ceil((x1 - x0) / h)), ny = Math.max(2, Math.ceil((y1 - y0) / h)), nz = Math.max(2, Math.ceil((z1 - z0) / h));
   const px = nx + 1, py = ny + 1, pz = nz + 1, sxy = px * py;
@@ -23,7 +24,7 @@ export function sampleGrid(scene, box, h, opts = {}){
     if (!dense && !cand) fill = far;
     else if (!dense){
       const dc = scene.distC((bb[0] + bb[3]) / 2, (bb[1] + bb[4]) / 2, (bb[2] + bb[5]) / 2, cand);
-      if (Math.abs(dc) > 1.5 * halfDiag) fill = dc > 0 ? dc - halfDiag : dc + halfDiag;
+      if (Math.abs(dc - iso) > 1.5 * halfDiag) fill = dc - iso > 0 ? dc - iso - halfDiag : dc - iso + halfDiag;
     }
     if (fill !== null){
       // a skipped brick only fills points no evaluated neighbour has written
@@ -37,7 +38,7 @@ export function sampleGrid(scene, box, h, opts = {}){
       const z = z0 + k * h;
       for (let j = j0; j <= j1; j++){
         const y = y0 + j * h; let idx = i0 + px * j + sxy * k;
-        for (let i = i0; i <= i1; i++, idx++) vals[idx] = scene.distC(x0 + i * h, y, z, cand);
+        for (let i = i0; i <= i1; i++, idx++) vals[idx] = scene.distC(x0 + i * h, y, z, cand) - iso;
       }
     }
   }
@@ -49,7 +50,7 @@ export function sampleGrid(scene, box, h, opts = {}){
     if (edgeJK){ for (let i = 0; i < px; i++, idx++) if (vals[idx] < cap) vals[idx] = cap; }
     else { if (vals[idx] < cap) vals[idx] = cap; if (vals[idx + nx] < cap) vals[idx + nx] = cap; }
   }
-  return { scene, vals, nx, ny, nz, h, x0, y0, z0, B, bx, by, bz, brickCand, stats:{ bricks:bx * by * bz, evaluated } };
+  return { scene, vals, nx, ny, nz, h, x0, y0, z0, B, bx, by, bz, brickCand, iso, stats:{ bricks:bx * by * bz, evaluated } };
 }
 
 // The scene nodes to use for an exact evaluation near cell (i, j, k): null if its brick was skipped.

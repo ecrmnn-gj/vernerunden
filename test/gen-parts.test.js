@@ -33,6 +33,38 @@ describe('generated parts are closed, manifold and validly skinned', () => {
     it(`head ${o.gender} ${o.face}`, async () => expectSound(await generatePart('head', o), 1), 30000);
   }
   it('boot', async () => expectSound(await generatePart('boot', BASE), 1), 30000);
+  // hair and beards may be several pieces (two braids beside the head), but each must be closed and manifold
+  const anyPieces = rec => { const n = components(rec.positions.length / 3, rec.index); expectSound(rec, n); return n; };
+  for (const o of combos([['gender', ['male', 'female']], ['face', ['oval', 'round', 'square', 'long']], ['hairStyle', ['short', 'long', 'ponytail', 'bun', 'braids', 'curly', 'afro']]])){
+    it(`hair ${o.gender} ${o.face} ${o.hairStyle}`, async () => expect(anyPieces(await generatePart('hair', o))).toBeGreaterThan(0), 30000);
+  }
+  for (const o of combos([['gender', ['male', 'female']], ['hairStyle', ['short', 'long', 'ponytail', 'bun', 'braids', 'curly', 'afro']]])){
+    it(`hair under the helmet ${o.gender} ${o.hairStyle}`, async () => expect(anyPieces(await generatePart('hairU', o))).toBeGreaterThan(0), 30000);
+  }
+  for (const o of combos([['face', ['oval', 'round', 'square', 'long']], ['facial', ['mustache', 'goatee', 'mustacheGoatee', 'boxed', 'full', 'long']]])){
+    it(`beard ${o.face} ${o.facial}`, async () => expect(anyPieces(await generatePart('beard', o))).toBeGreaterThan(0), 30000);
+  }
+  it('styles without a mesh give an empty part', async () => {
+    for (const [kind, o] of [['hair', { ...BASE, hairStyle:'buzz' }], ['hair', { ...BASE, hairStyle:'bald' }], ['beard', { ...BASE, facial:'none' }], ['beard', { ...BASE, facial:'stubble' }]]){
+      expect((await generatePart(kind, o)).index.length).toBe(0);
+    }
+  });
+});
+
+describe('the helmet', () => {
+  it('no hair under the helmet reaches its outer shell, for any style', async () => {
+    const { hairScene } = await import('../src/characters/figure/gen/hair.js');
+    const { HELMET, helmetFit } = await import('../src/characters/figure/gen/headshape.js');
+    for (const o of combos([['gender', ['male', 'female']], ['face', ['oval', 'round', 'square', 'long']], ['hairStyle', ['short', 'long', 'ponytail', 'bun', 'braids', 'curly', 'afro']]])){
+      const { scene } = hairScene(o, true), f = helmetFit(o), [rx, ry, rz] = HELMET.outer.map(v => v * f.s);
+      // the dome from just above the rim to the top (hair may hang below the rim, under the brim)
+      for (let i = 1; i <= 12; i++) for (let j = 0; j < 24; j++){
+        const el = i / 12 * Math.PI / 2, az = j / 24 * Math.PI * 2;
+        const p = [rx * Math.cos(el) * Math.sin(az), HELMET.y + f.lift + ry * Math.sin(el), HELMET.z + rz * Math.cos(el) * Math.cos(az)];
+        if (scene.dist(...p) <= 0) throw new Error(`${o.gender} ${o.face} ${o.hairStyle}: hair at the helmet's surface at ${p.map(v => v.toFixed(3))}`);
+      }
+    }
+  });
 });
 
 describe('the face', () => {

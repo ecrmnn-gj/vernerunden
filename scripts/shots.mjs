@@ -25,7 +25,7 @@ function findChromium(){
 // Camera framings around a figure standing at the origin, facing the camera at turn 0.
 const CAM = {
   full:[[0, 1.05, 3.6], [0, 1.0, 0], 38],
-  head:[[0, 1.8, 0.9], [0, 1.76, 0], 30],
+  head:[[0, 1.82, 0.95], [0, 1.78, 0], 30],
   hands:[[0.35, 0.95, 0.9], [0.2, 0.9, 0], 30]
 };
 const SETS = {
@@ -46,6 +46,25 @@ const SETS = {
     }
     await setView(p, 'reset', 0, 0.3, CAM.head); await shot('head');
     await setView(p, 'reset', 0, 0.5, CAM.hands); await shot('hands');
+  },
+  // every hair style with the helmet off (Hår tab) and on, and every beard
+  styles:async (p, shot) => {
+    await p.evaluate(() => __vr3dDebug.start()); await p.waitForTimeout(800);
+    await p.evaluate(() => { document.getElementById('creator').style.display = 'none'; });
+    const setAndWait = async c => { await p.evaluate(c => { window.__prevFig = __vr3dDebug.player(); __vr3dDebug.setChar(c); }, c); await p.waitForFunction(() => __vr3dDebug.player() !== window.__prevFig || window.__prevFig.ready === undefined, null, { timeout:60000 }).catch(() => {}); await p.waitForTimeout(400); };
+    for (const style of ['short', 'buzz', 'long', 'ponytail', 'bun', 'braids', 'curly', 'afro', 'bald']){
+      await setAndWait({ hairStyle:style, facial:'none' });
+      for (const [tab, label] of [['hair', 'off'], ['body', 'on']]){
+        await p.evaluate(t => __vr3dDebug.tab(t), tab);
+        await setView(p, 'reset', 0, 0.75, CAM.head); await shot(`hair-${style}-${label}`);
+      }
+      await setView(p, 'reset', 0, Math.PI - 0.5, [[0, 1.65, 1.2], [0, 1.62, 0], 34]); await shot(`hair-${style}-back`);
+    }
+    await p.evaluate(() => __vr3dDebug.tab('face'));
+    for (const facial of ['stubble', 'mustache', 'goatee', 'mustacheGoatee', 'boxed', 'full', 'long']){
+      await setAndWait({ hairStyle:'short', facial });
+      await setView(p, 'reset', 0, 0.45, CAM.head); await shot(`beard-${facial}`);
+    }
   },
   // a spread of option combinations, front-on
   matrix:async (p, shot) => {

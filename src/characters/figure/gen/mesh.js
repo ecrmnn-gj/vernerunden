@@ -41,6 +41,19 @@ export function signedVolume(pos, index){
   }
   return v / 6;
 }
+// Drop pieces smaller than minTris triangles: specks a cell or two across, too small to see, which the simplifier
+// can't reduce without opening them up.
+export function dropSpecks(index, nv, minTris){
+  const parent = new Int32Array(nv); for (let i = 0; i < nv; i++) parent[i] = i;
+  const find = x => { while (parent[x] !== x){ parent[x] = parent[parent[x]]; x = parent[x]; } return x; };
+  for (let t = 0; t < index.length; t += 3){ const a = find(index[t]); parent[find(index[t + 1])] = a; parent[find(index[t + 2])] = a; }
+  const size = new Map();
+  for (let t = 0; t < index.length; t += 3){ const r = find(index[t]); size.set(r, (size.get(r) || 0) + 1); }
+  if ([...size.values()].every(n => n >= minTris)) return index;
+  const out = [];
+  for (let t = 0; t < index.length; t += 3) if (size.get(find(index[t])) >= minTris) out.push(index[t], index[t + 1], index[t + 2]);
+  return new Uint32Array(out);
+}
 // Number of separate connected pieces.
 export function components(nv, index){
   const parent = new Int32Array(nv); for (let i = 0; i < nv; i++) parent[i] = i;

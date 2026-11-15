@@ -28,6 +28,8 @@ export function bodyScene(o, spec){
     // trapezius, sloping from behind the neck down to the shoulder
     s.add(new Capsule([x * 0.05, Y(0.635), 0.03], [x * 0.15 * bx, Y(0.6), 0.02], 0.042), 0.035, { bind:{ chain:x < 0 ? 'trapL' : 'trapR' } });
   }
+  // the back of the shirt between the trapezius and the neck, so no notch shows at the nape
+  s.add(new Ellipsoid([0, Y(0.615), 0.042], [0.06, 0.035, 0.035]), 0.03, torso);
   // shirt collar: a ring tilted down at the front
   const ca = 0.3;
   s.add(new Torus([0, Y(0.62), 0.004], 0.064, 0.011, basis([0, Math.cos(ca), -Math.sin(ca)])), 0.008, torso);

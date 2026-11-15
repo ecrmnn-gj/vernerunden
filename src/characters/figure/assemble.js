@@ -2,14 +2,16 @@
 // part, and the same API object makeHuman returns (root, body, head, shL, elL, ...), so poses.js drives it unchanged.
 import * as THREE from 'three';
 import { BONES, BONE_INDEX, BIND_ROT, rigSpec } from './rig.js';
-import { refine } from './refine.js';
+import { refine, hairChains } from './refine.js';
+import { makeHelmet } from './analytic.js';
 import { makeFigureUniforms, makePartMaterial, setFigureColours } from './materials.js';
 import { headLandmarks } from './gen/head.js';
 import { irisTexture } from './textures.js';
 
 const API_BONES = ['body', 'shL', 'elL', 'hipL', 'knL', 'anL', 'shR', 'elR', 'hipR', 'knR', 'anR'];
 
-// o: the character options; parts: { body, hands, head, boot } records from generate.js.
+// o: the character options; parts: { body, hands, head, boot, hair, hairU, beard } records from generate.js (hair and
+// beard records may be empty).
 export function assembleFigure(o, parts, opts = {}){
   const spec = rigSpec(o), root = new THREE.Group(), B = {}, list = [];
   for (const [n, parent] of BONES){
@@ -22,21 +24,36 @@ export function assembleFigure(o, parts, opts = {}){
   root.updateMatrixWorld(true);
   const skeleton = new THREE.Skeleton(list); // inverses from the bind pose
   const uniforms = makeFigureUniforms(), mats = [], meshes = [];
+  const ROUGH = { boot:0.6, hair:0.55 };
   const add = (kind, rec, anchorBone, boneMap) => {
+    if (!rec || !rec.index.length) return null;
     const g = partGeometry(rec, anchorBone ? spec.world[anchorBone] : null, boneMap || (n => BONE_INDEX[n]));
-    const mat = makePartMaterial(kind, uniforms, { roughness:kind === 'boot' ? 0.6 : 0.82 });
+    const mat = makePartMaterial(kind, uniforms, { roughness:ROUGH[kind] ?? 0.82 });
     const mesh = new THREE.SkinnedMesh(g, mat);
     mesh.castShadow = mesh.receiveShadow = true; mesh.frustumCulled = false;
     root.add(mesh); mesh.bind(skeleton, new THREE.Matrix4());
     mats.push(mat); meshes.push(mesh);
+    return mesh;
   };
   add('body', parts.body); add('hands', parts.hands); add('head', parts.head, 'headB');
   for (const s of ['L', 'R']) add('boot', parts.boot, 'an' + s, n => BONE_INDEX[n + s]);
+  // hair in two versions, with and without the helmet on, and the beard
+  const hairOpen = add('hair', parts.hair, 'headB'), hairUnder = add('hair', parts.hairU, 'headB');
+  add('hair', parts.beard, 'headB');
   // the head control: poses and the creator turn it, refine() shares the turn between neck and head bones
   const head = new THREE.Object3D(); B.body.add(head);
   for (const b of list) b.rotation.copy(new THREE.Euler()); // runtime rest: the poses set the joints from here
-  const fig = { root, head, pony:null, skeleton, bones:B, uniforms, mats, meshes, ready:true, lids:[], blink:{ next:1.5, t:-1 },
-    update(dt, time){ refine(B, head); if (dt) blink(fig, dt); },
+  // a control for swinging hair, like makeHuman's ponytail: frame.js sets its rotation, refine() springs the chain
+  const chains = hairChains(B, o.hairStyle), pony = chains.length ? new THREE.Object3D() : null;
+  if (pony) B.headB.add(pony);
+  const fig = { root, head, pony, chains, skeleton, bones:B, uniforms, mats, meshes, ready:true, lids:[], blink:{ next:1.5, t:-1 }, hairOpen, hairUnder,
+    update(dt, time){ refine(B, head, pony, chains, dt || 0); if (dt) blink(fig, dt); },
+    // with the helmet off the full hair shows; with it on, the version cut away under the dome
+    setHelmet(on){
+      if (fig.helmet) fig.helmet.visible = on;
+      if (hairOpen) hairOpen.visible = !on || !hairUnder;
+      if (hairUnder) hairUnder.visible = on;
+    },
     setColours(c){
       setFigureColours(uniforms, c, cssGreen());
       if (fig.helmetMat) fig.helmetMat.color.set(c.helmet);
@@ -45,8 +62,9 @@ export function assembleFigure(o, parts, opts = {}){
   for (const n of API_BONES) fig[n] = B[n];
   B.body.position.y = spec.rest.body[1];
   addEyes(fig, o);
-  if (opts.helmet) attachHelmet(fig, opts.helmet);
+  attachHelmet(fig, o);
   fig.setColours(o);
+  fig.setHelmet(opts.helmet !== false);
   return fig;
 }
 
@@ -120,13 +138,9 @@ function blink(fig, dt){
   for (const lid of fig.lids) lid.rotation.x = BLINK_SHUT * a;
 }
 
-// A plain hard hat on the head bone until the sculpted one replaces it.
-function attachHelmet(fig, colour){
-  const m = new THREE.MeshStandardMaterial({ color:colour, roughness:0.32, metalness:0.05, emissive:new THREE.Color(0), emissiveIntensity:1 });
-  const g = new THREE.Group();
-  const dome = new THREE.Mesh(new THREE.SphereGeometry(0.128, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), m); dome.scale.set(1, 0.92, 1.1);
-  const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.142, 0.148, 0.012, 32), m); brim.scale.set(1.04, 1, 1.22); brim.position.z = -0.012;
-  g.add(dome, brim); g.position.set(0, 0.095, 0.0);
-  for (const x of g.children){ x.castShadow = x.receiveShadow = true; }
+// The hard hat, fitted to the hair style.
+function attachHelmet(fig, o){
+  const m = new THREE.MeshStandardMaterial({ color:o.helmet, roughness:0.32, metalness:0.05, side:THREE.DoubleSide, emissive:new THREE.Color(0), emissiveIntensity:1 });
+  const g = makeHelmet(o, m);
   fig.bones.headB.add(g); fig.mats.push(m); fig.helmet = g; fig.helmetMat = m;
 }

@@ -6,14 +6,8 @@
 // region distances rather than carved, so they stay crisp at any mesh resolution; eyes and lids are separate meshes.
 import { Scene, Sphere, Capsule, RoundCone, Ellipsoid, Plane } from './sdf.js';
 import { factors } from './shape.js';
-
-// Face shapes as factors on the base proportions.
-export const FACE_SHAPES = {
-  oval:{ w:1, jaw:1, jawK:0.025, chin:1, tall:1, cheek:1 },
-  round:{ w:1.06, jaw:1.1, jawK:0.04, chin:0.85, tall:0.96, cheek:1.15 },
-  square:{ w:1.03, jaw:1.16, jawK:0.012, chin:1.12, tall:1, cheek:0.95 },
-  long:{ w:0.95, jaw:0.95, jawK:0.025, chin:1.05, tall:1.08, cheek:0.95 }
-};
+import { FACE_SHAPES, headLandmarks, scalpMask, beardArea } from './headshape.js';
+export { FACE_SHAPES, headLandmarks };
 
 // Neck and head weights along local y: chest at the base of the neck, then neck, then head.
 function headWeights(p){
@@ -25,20 +19,6 @@ function headWeights(p){
   return [['headB', 1]];
 }
 const sm = s => s * s * (3 - 2 * s);
-
-// Where the eyes, brows and mouth go for these options. Used by the sculpt here and by assemble.js to place the
-// eyeballs and lids, so the two always agree.
-export function headLandmarks(o){
-  const F = factors(o), fs = FACE_SHAPES[o.face] || FACE_SHAPES.oval, k = F.female ? 0.95 : 1;
-  const eyeY = 0.036 * fs.tall, eyeX = 0.032 * k * fs.w ** 0.5, eyeZ = -0.08 * k;
-  return {
-    k, fs, female:F.female,
-    eye:{ r:0.0122 * k, L:[-eyeX, eyeY, eyeZ], R:[eyeX, eyeY, eyeZ] },
-    // a brow as two segments, inner to outer, slightly arched; thickness is the half-width of the painted band
-    brow:{ inner:[0.013 * k, eyeY + 0.021, -0.096 * k], mid:[0.032 * k * fs.w, eyeY + 0.026, -0.094 * k], outer:[0.05 * k * fs.w, eyeY + 0.02, -0.083 * k], thick:F.female ? 0.0028 : 0.0042 },
-    mouth:{ y:-0.037 * fs.tall, z:-0.096 * k, w:(F.female ? 0.021 : 0.023) * k }
-  };
-}
 
 export function headScene(o){
   const F = factors(o), L = headLandmarks(o), { k, fs } = L, f = F.female;
@@ -78,6 +58,7 @@ export function headScene(o){
   }
   // the neck ends inside the torso
   s.int(new Plane([0, -1, 0], 0.235));
+  tags.scalp = scalpMask(o); tags.beard = beardArea(o);
   return { scene:s, tags, landmarks:L };
 }
 
@@ -109,6 +90,9 @@ export function headRegions(positions, tags, L){
     }
     r1[v * 4 + 2] = b;
     r1[v * 4 + 3] = 1;
+    // where stubble and a buzz cut show (tinted by the shader when those styles are picked)
+    r2[v * 4] = tags.beard.dist(...p);
+    r2[v * 4 + 1] = tags.scalp.dist(...p);
     // cheeks: a soft blush area (the shader uses it as a gradient, not a line)
     r2[v * 4 + 2] = Math.hypot(Math.abs(p[0]) - 0.045 * L.k, p[1] + 0.005, (p[2] + 0.08) * 0.6) - 0.022;
   }
