@@ -62,5 +62,4 @@
 .saverow .btn{ font-size:16.5px; padding:9px 16px; }
 .savemsg{ font-size:13px; min-height:1.3em; margin:7px 0 0; color:var(--letter-muted); }
 .letter > .btn{ margin-top:12px; }
-.letter > .ghost{ margin:12px 0 0 8px; background:transparent; color:var(--letter-ink); border-color:var(--letter-ink); font-size:14px; padding:9.5px 12.5px; }
 .startov-row{ display:flex; flex-wrap:wrap; justify-content:center; gap:8px; }
