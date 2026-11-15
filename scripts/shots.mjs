@@ -26,7 +26,8 @@ function findChromium(){
 const CAM = {
   full:[[0, 1.05, 3.6], [0, 1.0, 0], 38],
   head:[[0, 1.82, 0.95], [0, 1.78, 0], 30],
-  hands:[[0.35, 0.95, 0.9], [0.2, 0.9, 0], 30]
+  hands:[[0.35, 0.95, 0.9], [0.2, 0.9, 0], 30],
+  chest:[[0, 1.4, 1.1], [0, 1.36, 0], 30]
 };
 const SETS = {
   // each creator tab as a player sees it
@@ -45,6 +46,8 @@ const SETS = {
       await setView(p, pose, ph, 0.9, CAM.full); await shot(`pose-${pose}${ph ? '-' + ph : ''}`);
     }
     await setView(p, 'reset', 0, 0.3, CAM.head); await shot('head');
+    await setView(p, 'reset', 0, 0, CAM.chest); await shot('chest');
+    await setView(p, 'reset', 0, Math.PI, CAM.chest); await shot('back-print');
     await setView(p, 'reset', 0, 0.5, CAM.hands); await shot('hands');
   },
   // every hair style with the helmet off (Hår tab) and on, and every beard
@@ -76,9 +79,11 @@ const SETS = {
       { hairStyle:'afro', skin:'#55351F' }, { facial:'long', hairStyle:'buzz' }
     ];
     for (const [i, c] of combos.entries()){
-      await p.evaluate(c => __vr3dDebug.setChar(c), c); await waitFigure(p);
+      await p.evaluate(c => { window.__prevFig = __vr3dDebug.player(); __vr3dDebug.setChar(c); }, c);
+      await p.waitForFunction(() => __vr3dDebug.player() !== window.__prevFig || window.__prevFig.ready === undefined, null, { timeout:60000 }).catch(() => {}); await p.waitForTimeout(400);
       await setView(p, 'reset', 0, 0.35, CAM.full); await shot(`combo-${i}-${Object.values(c).join('-').replace(/#/g, '')}`);
-      await p.evaluate(() => __vr3dDebug.setChar({ gender:'male', build:'average', sleeves:'long', gloves:'on', hairStyle:'short', facial:'none', skin:'#C99A76' }));
+      await p.evaluate(() => { window.__prevFig = __vr3dDebug.player(); __vr3dDebug.setChar({ gender:'male', build:'average', sleeves:'long', gloves:'on', hairStyle:'short', facial:'none', skin:'#C99A76' }); });
+      await p.waitForFunction(() => __vr3dDebug.player() !== window.__prevFig || window.__prevFig.ready === undefined, null, { timeout:60000 }).catch(() => {});
     }
   }
 };
@@ -101,7 +106,7 @@ let failed = false;
 try {
   for (const set of run){
     if (!SETS[set]){ console.error('unknown set', set); failed = true; continue; }
-    const ctx = await browser.newContext({ viewport:{ width:1280, height:800 } });
+    const ctx = await browser.newContext({ viewport:{ width:1280, height:800 }, colorScheme:process.argv.includes('--dark') ? 'dark' : 'light' });
     const p = await ctx.newPage(); const errs = [];
     p.on('pageerror', e => errs.push(String(e)));
     await p.goto(url, { waitUntil:'networkidle' });

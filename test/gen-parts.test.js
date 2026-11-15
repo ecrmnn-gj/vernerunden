@@ -33,6 +33,9 @@ describe('generated parts are closed, manifold and validly skinned', () => {
     it(`head ${o.gender} ${o.face}`, async () => expectSound(await generatePart('head', o), 1), 30000);
   }
   it('boot', async () => expectSound(await generatePart('boot', BASE), 1), 30000);
+  for (const o of combos([['gender', ['male', 'female']], ['build', ['slim', 'average', 'sturdy']]])){
+    it(`vest ${o.gender} ${o.build}`, async () => expectSound(await generatePart('vest', o), 1), 30000);
+  }
   // hair and beards may be several pieces (two braids beside the head), but each must be closed and manifold
   const anyPieces = rec => { const n = components(rec.positions.length / 3, rec.index); expectSound(rec, n); return n; };
   for (const o of combos([['gender', ['male', 'female']], ['face', ['oval', 'round', 'square', 'long']], ['hairStyle', ['short', 'long', 'ponytail', 'bun', 'braids', 'curly', 'afro']]])){
@@ -112,7 +115,7 @@ describe('the skinned figure deforms without collapsing', () => {
     ({ assembleFigure } = await import('../src/characters/figure/assemble.js'));
     poses = await import('../src/characters/poses.js');
     parts = {};
-    for (const kind of ['body', 'hands', 'head', 'boot']) parts[kind] = await generatePart(kind, BASE);
+    for (const kind of ['body', 'hands', 'head', 'boot', 'vest', 'hair', 'hairU', 'beard']) parts[kind] = await generatePart(kind, BASE);
   }, 60000);
 
   // Flexion creases (behind the knee, inside the elbow, the groin, under the chin) always squeeze a few triangles;

@@ -79,7 +79,7 @@ function buildFigure(){
   return Promise.all(PARTS.map(k => requestPart(k, o, tier, tier + ':' + partKey(k, o)))).then(recs => {
     if (id !== figReq) return; // a newer request superseded this one
     const parts = {}; PARTS.forEach((k, i) => { parts[k] = recs[i]; });
-    swapPlayer(assembleFigure(o, parts, { helmet:helmetOn }));
+    swapPlayer(assembleFigure(o, parts, { helmet:helmetOn, detail:tier !== 'low' }));
   }, err => { console.error('figure generation failed', err); });
 }
 function swapPlayer(fig){

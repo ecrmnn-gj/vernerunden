@@ -10,8 +10,22 @@ export const BELT_Y = BODY_Y + 0.065;
 export const SHORT_HEM = -0.15;
 
 export function bodyScene(o, spec){
-  const F = factors(o), { bx, hx } = widths(o), g = F.girth, Y = by => BODY_Y + by;
-  const s = new Scene(), torso = { bind:{ chain:'torso' } }, tags = {};
+  const F = factors(o), { hx } = widths(o), s = new Scene(), torso = { bind:{ chain:'torso' } }, tags = {};
+  addTorso(s, o);
+  // shirt collar: a ring tilted down at the front
+  const ca = 0.3;
+  s.add(new Torus([0, BODY_Y + 0.62, 0.004], 0.064, 0.011, basis([0, Math.cos(ca), -Math.sin(ca)])), 0.008, torso);
+  // belt and buckle
+  s.add(tag(tags, 'belt', new Ellipsoid([0, BELT_Y, 0.005], [0.162 * hx * F.waist ** 0.3, 0.022, 0.116 * F.waist ** 0.5])), 0.006, torso);
+  s.add(tag(tags, 'buckle', new RoundBox([0, BELT_Y, 0.005 - 0.116 * F.waist ** 0.5 - 0.002], [0.03, 0.021, 0.006], 0.003)), 0.002, torso);
+  for (const side of ['L', 'R']){ s.add(armScene(o, spec, side, F), 0.045); s.add(legScene(spec, side, F, tags), 0.04); }
+  return { scene:s, tags };
+}
+
+// The torso in its shirt, without arms, legs, collar or belt: the body's core, and what the vest is shaped over.
+export function torsoScene(o){ const s = new Scene(); addTorso(s, o); return s; }
+function addTorso(s, o){
+  const F = factors(o), { bx, hx } = widths(o), g = F.girth, Y = by => BODY_Y + by, torso = { bind:{ chain:'torso' } };
   // pelvis, seat and belly
   s.add(new Ellipsoid([0, Y(0.01), 0.005], [0.165 * hx * F.waist ** 0.3, 0.115, 0.11 * F.waist ** 0.5]), 0, torso);
   for (const x of [-1, 1]) s.add(new Ellipsoid([x * 0.072 * hx, Y(-0.045), 0.055], [0.08 * hx * g, 0.09, 0.07 * g]), 0.03, { bind:{ mix:[['pelvis', 0.5], [x < 0 ? 'hipL_h' : 'hipR_h', 0.5]] } });
@@ -30,14 +44,6 @@ export function bodyScene(o, spec){
   }
   // the back of the shirt between the trapezius and the neck, so no notch shows at the nape
   s.add(new Ellipsoid([0, Y(0.615), 0.042], [0.06, 0.035, 0.035]), 0.03, torso);
-  // shirt collar: a ring tilted down at the front
-  const ca = 0.3;
-  s.add(new Torus([0, Y(0.62), 0.004], 0.064, 0.011, basis([0, Math.cos(ca), -Math.sin(ca)])), 0.008, torso);
-  // belt and buckle
-  s.add(tag(tags, 'belt', new Ellipsoid([0, BELT_Y, 0.005], [0.162 * hx * F.waist ** 0.3, 0.022, 0.116 * F.waist ** 0.5])), 0.006, torso);
-  s.add(tag(tags, 'buckle', new RoundBox([0, BELT_Y, 0.005 - 0.116 * F.waist ** 0.5 - 0.002], [0.03, 0.021, 0.006], 0.003)), 0.002, torso);
-  for (const side of ['L', 'R']){ s.add(armScene(o, spec, side, F), 0.045); s.add(legScene(spec, side, F, tags), 0.04); }
-  return { scene:s, tags };
 }
 function tag(tags, name, p){ (tags[name] = tags[name] || []).push(p); return p; }
 

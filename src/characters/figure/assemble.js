@@ -1,12 +1,14 @@
 // Turns generated part records into a posable figure: THREE.Bones in the bind pose, a Skeleton, one SkinnedMesh per
 // part, and the same API object makeHuman returns (root, body, head, shL, elL, ...), so poses.js drives it unchanged.
 import * as THREE from 'three';
-import { BONES, BONE_INDEX, BIND_ROT, rigSpec } from './rig.js';
+import { BONES, BONE_INDEX, BIND_ROT, rigSpec, widths } from './rig.js';
+import { VEST } from './gen/vest.js';
 import { refine, hairChains } from './refine.js';
 import { makeHelmet } from './analytic.js';
+import { HELMET } from './gen/headshape.js';
 import { makeFigureUniforms, makePartMaterial, setFigureColours } from './materials.js';
 import { headLandmarks } from './gen/head.js';
-import { irisTexture } from './textures.js';
+import { irisTexture, stickerTexture } from './textures.js';
 
 const API_BONES = ['body', 'shL', 'elL', 'hipL', 'knL', 'anL', 'shR', 'elR', 'hipR', 'knR', 'anR'];
 
@@ -28,7 +30,7 @@ export function assembleFigure(o, parts, opts = {}){
   const add = (kind, rec, anchorBone, boneMap) => {
     if (!rec || !rec.index.length) return null;
     const g = partGeometry(rec, anchorBone ? spec.world[anchorBone] : null, boneMap || (n => BONE_INDEX[n]));
-    const mat = makePartMaterial(kind, uniforms, { roughness:ROUGH[kind] ?? 0.82 });
+    const mat = makePartMaterial(kind, uniforms, { roughness:ROUGH[kind] ?? 0.82, detail:opts.detail });
     const mesh = new THREE.SkinnedMesh(g, mat);
     mesh.castShadow = mesh.receiveShadow = true; mesh.frustumCulled = false;
     root.add(mesh); mesh.bind(skeleton, new THREE.Matrix4());
@@ -40,6 +42,8 @@ export function assembleFigure(o, parts, opts = {}){
   // hair in two versions, with and without the helmet on, and the beard
   const hairOpen = add('hair', parts.hair, 'headB'), hairUnder = add('hair', parts.hairU, 'headB');
   add('hair', parts.beard, 'headB');
+  const vest = add('vest', parts.vest);
+  uniforms.uStrapX.value = VEST.strapX * widths(o).bx;
   // the head control: poses and the creator turn it, refine() shares the turn between neck and head bones
   const head = new THREE.Object3D(); B.body.add(head);
   for (const b of list) b.rotation.copy(new THREE.Euler()); // runtime rest: the poses set the joints from here
@@ -55,7 +59,9 @@ export function assembleFigure(o, parts, opts = {}){
       if (hairUnder) hairUnder.visible = on;
     },
     setColours(c){
-      setFigureColours(uniforms, c, cssGreen());
+      setFigureColours(uniforms, c, themeColours());
+      // hi-vis cloth glows a little, as on the old figure
+      if (vest){ vest.material.emissive.copy(uniforms.uVest.value); vest.material.emissiveIntensity = 0.12; vest.material.userData.e0 = vest.material.emissive.clone(); vest.material.userData.i0 = 0.12; }
       if (fig.helmetMat) fig.helmetMat.color.set(c.helmet);
       if (fig.eyeMat){ const t = irisTexture(c.eyes); fig.eyeMat.map = t; fig.eyeMat.color.set(t ? '#ffffff' : c.eyes); fig.eyeMat.needsUpdate = true; }
     } };
@@ -94,7 +100,10 @@ function partGeometry(rec, anchor, boneOf){
   return g;
 }
 
-function cssGreen(){ try { return getComputedStyle(document.documentElement).getPropertyValue('--green').trim() || '#2E8B57'; } catch (e){ return '#2E8B57'; } }
+function themeColours(){
+  const v = (n, d) => { try { return getComputedStyle(document.documentElement).getPropertyValue(n).trim() || d; } catch (e){ return d; } };
+  return { green:v('--green', '#2E8B57'), yellow:v('--yellow', '#F2C230') };
+}
 
 // Eyes: spheres with an iris texture in the sockets the head sculpt leaves for them, and upper and lower lids that
 // are thin shells just in front of the eyeball. A blink rotates the upper lid down over the eye.
@@ -138,9 +147,21 @@ function blink(fig, dt){
   for (const lid of fig.lids) lid.rotation.x = BLINK_SHUT * a;
 }
 
+// The logo sticker on the front of the dome, just above the brim: a patch of the dome's own ellipsoid, a hair outside it.
+function stickerMesh(material){
+  const [R, H, Z] = HELMET.outer, geo = new THREE.SphereGeometry(R * 1.006, 10, 6, Math.PI * 1.5 - 0.42, 0.84, 1.02, 0.36);
+  geo.scale(1, H / R, Z / R);
+  const m = new THREE.Mesh(geo, material); m.renderOrder = 1;
+  return m;
+}
 // The hard hat, fitted to the hair style.
 function attachHelmet(fig, o){
   const m = new THREE.MeshStandardMaterial({ color:o.helmet, roughness:0.32, metalness:0.05, side:THREE.DoubleSide, emissive:new THREE.Color(0), emissiveIntensity:1 });
   const g = makeHelmet(o, m);
+  const st = stickerTexture();
+  if (st){
+    const sm = new THREE.MeshStandardMaterial({ map:st, transparent:true, roughness:0.4, polygonOffset:true, polygonOffsetFactor:-2, emissive:new THREE.Color(0), emissiveIntensity:1 });
+    g.add(stickerMesh(sm)); fig.mats.push(sm);
+  }
   fig.bones.headB.add(g); fig.mats.push(m); fig.helmet = g; fig.helmetMat = m;
 }

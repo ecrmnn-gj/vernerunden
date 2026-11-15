@@ -17,23 +17,26 @@ function contributions(scene, x, y, z, out){
 // Per-vertex weights as a list of [bone, w] (unnormalised mixes are fine; pack() normalises).
 // opts.chains: from rig.chains(spec); opts.blend: softmin radius.
 export function inheritWeights(scene, positions, opts){
-  const ks = opts.blend || 0.01, chains = opts.chains, nv = positions.length / 3, out = new Array(nv), buf = [];
-  for (let v = 0; v < nv; v++){
-    const x = positions[v * 3], y = positions[v * 3 + 1], z = positions[v * 3 + 2], p = [x, y, z];
-    buf.length = 0; contributions(scene, x, y, z, buf);
-    let dmin = Infinity; for (let i = 1; i < buf.length; i += 2) if (buf[i] < dmin) dmin = buf[i];
-    const acc = new Map();
-    let tot = 0;
-    for (let i = 0; i < buf.length; i += 2){
-      const d = buf[i + 1]; if (d > dmin + 3 * ks) continue;
-      const s = Math.exp(-(d - dmin) / ks); tot += s;
-      for (const [b, w] of bindWeights(buf[i].bind, p, chains)) acc.set(b, (acc.get(b) || 0) + w * s);
-    }
-    out[v] = tot > 0 ? [...acc] : [['body', 1]];
-  }
+  const ks = opts.blend || 0.01, chains = opts.chains, nv = positions.length / 3, out = new Array(nv);
+  for (let v = 0; v < nv; v++) out[v] = pointWeights(scene, [positions[v * 3], positions[v * 3 + 1], positions[v * 3 + 2]], chains, ks);
   return out;
 }
+// The weights at one point: a soft minimum over the nodes whose surfaces are near it.
+function pointWeights(scene, p, chains, ks){
+  const buf = []; contributions(scene, p[0], p[1], p[2], buf);
+  let dmin = Infinity; for (let i = 1; i < buf.length; i += 2) if (buf[i] < dmin) dmin = buf[i];
+  const acc = new Map();
+  let tot = 0;
+  for (let i = 0; i < buf.length; i += 2){
+    const d = buf[i + 1]; if (d > dmin + 3 * ks) continue;
+    const s = Math.exp(-(d - dmin) / ks); tot += s;
+    for (const [b, w] of bindWeights(buf[i].bind, p, chains)) acc.set(b, (acc.get(b) || 0) + w * s);
+  }
+  return tot > 0 ? [...acc] : [['body', 1]];
+}
+// bind.scene: weighted like that scene at this point (a garment takes the weights of the body under it).
 export function bindWeights(bind, p, chains){
+  if (bind.scene) return pointWeights(bind.scene, p, chains, 0.01);
   if (bind.bone) return [[bind.bone, 1]];
   if (bind.mix) return bind.mix;
   if (bind.chain) return chainWeights(chains[bind.chain], p);

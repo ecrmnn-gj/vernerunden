@@ -6,9 +6,9 @@ export function factors(o){
   const female = o.gender === 'female', b = o.build || 'average';
   return {
     female,
-    girth:(b === 'slim' ? 0.9 : b === 'sturdy' ? 1.1 : 1) * (female ? 0.92 : 1),
-    waist:(b === 'slim' ? 0.9 : b === 'sturdy' ? 1.14 : 1) * (female ? 0.88 : 1),
-    chest:(b === 'slim' ? 0.95 : b === 'sturdy' ? 1.06 : 1) * (female ? 0.93 : 1),
+    girth:(b === 'slim' ? 0.86 : b === 'sturdy' ? 1.16 : 1) * (female ? 0.92 : 1),
+    waist:(b === 'slim' ? 0.86 : b === 'sturdy' ? 1.22 : 1) * (female ? 0.88 : 1),
+    chest:(b === 'slim' ? 0.93 : b === 'sturdy' ? 1.09 : 1) * (female ? 0.93 : 1),
     belly:b === 'sturdy',
     hand:female ? 0.92 : 1
   };

@@ -16,16 +16,17 @@ import { bootScene, bootRegions } from './boots.js';
 import { partKey } from '../keys.js';
 import { hairScene } from './hair.js';
 import { beardScene } from './beard.js';
+import { vestScene } from './vest.js';
 export { partKey };
 
 // Bump whenever any generated output changes, so cached parts from older code are not reused.
-export const GEN_VERSION = 5;
+export const GEN_VERSION = 6;
 
 // Grid cell size (m) and triangle budget per part and quality tier.
 export const TIERS = {
-  high:{ body:[0.006, 14000], hands:[0.002, 5200], head:[0.0025, 10000], boot:[0.004, 1000], hair:[0.0035, 6500], hairU:[0.0035, 5000], beard:[0.0025, 3200] },
-  medium:{ body:[0.007, 11000], hands:[0.0025, 4000], head:[0.003, 8000], boot:[0.005, 800], hair:[0.004, 5000], hairU:[0.004, 3800], beard:[0.003, 2500] },
-  low:{ body:[0.01, 6500], hands:[0.003, 2400], head:[0.004, 4800], boot:[0.006, 500], hair:[0.006, 3000], hairU:[0.006, 2300], beard:[0.004, 1500] }
+  high:{ body:[0.006, 14000], hands:[0.002, 5200], head:[0.0025, 10000], boot:[0.004, 1000], hair:[0.0035, 6500], hairU:[0.0035, 5000], beard:[0.0025, 3200], vest:[0.0035, 3200] },
+  medium:{ body:[0.007, 11000], hands:[0.0025, 4000], head:[0.003, 8000], boot:[0.005, 800], hair:[0.004, 5000], hairU:[0.004, 3800], beard:[0.003, 2500], vest:[0.004, 2500] },
+  low:{ body:[0.01, 6500], hands:[0.003, 2400], head:[0.004, 4800], boot:[0.006, 500], hair:[0.006, 3000], hairU:[0.006, 2300], beard:[0.004, 1500], vest:[0.005, 1500] }
 };
 const BONE_NAMES = BONES.map(([n]) => n);
 export const REG_CLAMP = 0.02;
@@ -84,6 +85,10 @@ export async function generatePart(kind, o, tier = 'medium'){
     const { scene, sole } = bootScene(), x = extract(scene, h);
     rec = await finish(kind, scene, x.m, p => bootRegions(p, sole), budget, ['an', 'kn'], {});
     rec.anchor = 'an'; rec.ms = x.ms; rec.cells = x.cells;
+  } else if (kind === 'vest'){
+    const spec = rigSpec(o), { scene } = vestScene(o), x = extract(scene, h);
+    rec = await finish(kind, scene, x.m, p => new Float32Array(p.length / 3 * 4).fill(1), budget, BONE_NAMES, { chains:chains(spec), smooth:1 });
+    rec.anchor = null; rec.ms = x.ms; rec.cells = x.cells;
   } else if (kind === 'hair' || kind === 'hairU' || kind === 'beard'){
     const built = kind === 'beard' ? beardScene(o) : hairScene(o, kind === 'hairU');
     if (!built) rec = emptyPart();
