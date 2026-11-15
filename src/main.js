@@ -52,6 +52,7 @@ import './ui/creator.js';
 import { applyTheme } from './render/theme.js';
 import { uiState, syncStartUi } from './ui/menus.js';
 import './ui/input.js';
+import './ui/debug.js';
 
 window.__vr3d = true; // tells index.html the game loaded
 

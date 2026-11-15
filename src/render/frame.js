@@ -24,7 +24,17 @@ import { stageH, stageW } from '../ui/layout.js';
 export const camPos = new THREE.Vector3(0, 3.25, 6.6), camLook = new THREE.Vector3(0, 1.15, -12);
 // creator view: crBlend eases the camera between the running view and a front-on portrait of the player
 let crBlend = 0, camFov = 60;
-export const crFx = { hop:0, spin:0, drag:null };
+// Creator framings per view, for wide stages and narrow (portrait) ones: camera position, look target, field of view.
+// The figure's head is centred about 1.8 m up, so the head view looks at the face with the shoulders in frame.
+const CR_VIEWS = {
+  body:{ wide:[[0, 1.5, 2.7], [0, 1.27, 0], 38], narrow:[[0, 1.4, 4.6], [0, 1.2, 0], 38] },
+  head:{ wide:[[0, 1.86, 1.35], [0, 1.8, 0], 30], narrow:[[0, 1.9, 2.1], [0, 1.74, 0], 30] }
+};
+const crCam = new THREE.Vector3(0, 1.5, 2.7), crLook = new THREE.Vector3(0, 1.27, 0), _crT = new THREE.Vector3();
+let crFov = 38;
+// Overrides set by the ?debug hook (src/ui/debug.js) for screenshots: a pose function and a fixed camera.
+export const dbg = { pose:null, cam:null };
+export const crFx = { hop:0, spin:0, drag:null, view:'body' }; // view: 'body' or 'head', from the creator tab
 export function render(time, dt){
   // player pose
   const pr = player.root;
@@ -42,7 +52,8 @@ export function render(time, dt){
       if (!reduceMotion) pr.position.y = k * 0.22;
       player.shL.rotation.z = -0.1 - k * 2.4; player.shR.rotation.z = 0.1 + k * 2.4; player.elL.rotation.x = player.elR.rotation.x = 0.15 + k * 0.4;
     }
-    pr.rotation.y = Math.PI + crFx.spin + (reduceMotion || crFx.drag ? 0 : Math.sin(time * 0.45) * 0.45);
+    // a smaller turntable sway in the head view, so the face stays towards the camera
+    pr.rotation.y = Math.PI + crFx.spin + (reduceMotion || crFx.drag ? 0 : Math.sin(time * 0.45) * (crFx.view === 'head' ? 0.25 : 0.45));
   } else if (state === 'playing' || state === 'countdown' || state === 'start' || state === 'paused' || state === 'loading'){
     if (state === 'start') poseReset(player);
     else if (state === 'countdown') poseReady(player);
@@ -51,6 +62,7 @@ export function render(time, dt){
     else if (state !== 'loading' && state !== 'paused'){ poseRun(player, g.phase, 0.95); if (g.stumble > 0) player.body.rotation.x = -0.55; }
     pr.rotation.z = (g.x - laneX(g.lane)) * 0.08;
   } else if (g && g.caught){ poseReset(player); player.body.rotation.x = 0.08; }
+  if (dbg.pose) dbg.pose(player, time);
   if (player.pony){
     // the ponytail swings with the stride and flies up in jumps
     const run = state === 'playing' && g.onGround && g.slideT <= 0, air = (state === 'playing' || state === 'ending') && !g.onGround;
@@ -115,17 +127,21 @@ export function render(time, dt){
   const cb = crBlend * crBlend * (3 - 2 * crBlend), portrait = stageW < 640;
   camPos.set(g.x * 0.6, cy, cz);
   if (state === 'start' && !reduceMotion) camPos.add(_v3.set(Math.sin(time * 0.35) * 0.9, Math.sin(time * 0.23) * 0.15, 0));
-  if (cb > 0.0005) camPos.lerp(_v3.set(0, portrait ? 1.4 : 1.5, portrait ? 4.6 : 2.7), cb);
+  // ease between the creator framings, so switching tabs glides instead of cutting
+  const [cv, cl, cf] = CR_VIEWS[crFx.view][portrait ? 'narrow' : 'wide'], ck = 1 - Math.exp(-6 * dt);
+  crCam.lerp(_crT.fromArray(cv), ck); crLook.lerp(_crT.fromArray(cl), ck); crFov += (cf - crFov) * ck;
+  if (cb > 0.0005) camPos.lerp(crCam, cb);
   camera.position.lerp(camPos, Math.min(1, dt * 8)); skyMesh.position.copy(camera.position);
   camera.position.x += rand(-sh, sh); camera.position.y += rand(-sh, sh) * 0.7;
   camLook.set(g.x * 0.75, lookY, -12);
-  if (cb > 0.0005) camLook.lerp(_v3.set(0, portrait ? 1.2 : 1.27, 0), cb);
+  if (cb > 0.0005) camLook.lerp(crLook, cb);
   camera.lookAt(camLook);
-  const tfov = (sup ? 74 : 60) * (1 - cb) + 38 * cb; camFov += (tfov - camFov) * Math.min(1, dt * 4);
+  const tfov = (sup ? 74 : 60) * (1 - cb) + crFov * cb; camFov += (tfov - camFov) * Math.min(1, dt * 4);
   if (Math.abs(camera.fov - camFov) > 0.05){ camera.fov = camFov; camera.updateProjectionMatrix(); }
   // shift the frame so the figure sits beside the creator panel (left of it on wide screens, above it on narrow ones)
   if (cb > 0.001) camera.setViewOffset(stageW, stageH, portrait ? 0 : 0.21 * stageW * cb, portrait ? 0.21 * stageH * cb : 0, stageW, stageH);
   else if (camera.view && camera.view.enabled) camera.clearViewOffset();
+  if (dbg.cam){ camera.position.fromArray(dbg.cam.pos); camera.lookAt(_v3.fromArray(dbg.cam.look)); camera.fov = dbg.cam.fov; camera.clearViewOffset(); camera.updateProjectionMatrix(); }
   // effects
   const pxScale = renderer.getDrawingBufferSize(_v2).y / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2));
   FX.dust.mat.uniforms.uScale.value = FX.spark.mat.uniforms.uScale.value = pxScale;
